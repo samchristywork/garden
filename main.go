@@ -78,6 +78,15 @@ func start_server(db *sql.DB) {
 		}
 	})
 
+	http.HandleFunc("/water-plant", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.FormValue("id"))
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("Watering plant with ID", id)
+	})
+
 	fmt.Println("Listening on port 8000")
 	http.ListenAndServe(":8000", nil)
 }
