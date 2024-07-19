@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"net/http"
+	"strconv"
 )
 
 type Plant struct {
@@ -55,6 +56,19 @@ func start_server(db *sql.DB) {
 			}
 		}
 		w.Write([]byte("]"))
+	})
+
+	http.HandleFunc("/add-plant", func(w http.ResponseWriter, r *http.Request) {
+		name := r.FormValue("name")
+		wateringFrequency, err := strconv.Atoi(r.FormValue("wateringFrequency"))
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = db.Exec("INSERT INTO plants (name, watering_frequency) VALUES (?, ?)", name, wateringFrequency)
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	fmt.Println("Listening on port 8000")
