@@ -14,33 +14,28 @@ type Plant struct {
 	WateringFrequency int
 }
 
-func get_plants(db *sql.DB) []Plant {
-	rows, err := db.Query("SELECT * FROM plants")
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	var plants []Plant
-	for rows.Next() {
-		var plant Plant
-		err = rows.Scan(&plant.ID, &plant.Name, &plant.WateringFrequency)
-		if err != nil {
-			panic(err)
-		}
-		plants = append(plants, plant)
-	}
-
-	return plants
-}
-
 func start_server(db *sql.DB) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "index.html")
 	})
 
 	http.HandleFunc("/get-plants", func(w http.ResponseWriter, r *http.Request) {
-		plants := get_plants(db)
+		rows, err := db.Query("SELECT * FROM plants")
+		if err != nil {
+			panic(err)
+		}
+		defer rows.Close()
+
+		var plants []Plant
+		for rows.Next() {
+			var plant Plant
+			err = rows.Scan(&plant.ID, &plant.Name, &plant.WateringFrequency)
+			if err != nil {
+				panic(err)
+			}
+			plants = append(plants, plant)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("["))
 		for i, plant := range plants {
@@ -66,6 +61,18 @@ func start_server(db *sql.DB) {
 		}
 
 		_, err = db.Exec("INSERT INTO plants (name, watering_frequency) VALUES (?, ?)", name, wateringFrequency)
+		if err != nil {
+			panic(err)
+		}
+	})
+
+	http.HandleFunc("/delete-plant", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.FormValue("id"))
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = db.Exec("DELETE FROM plants WHERE id = ?", id)
 		if err != nil {
 			panic(err)
 		}
