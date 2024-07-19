@@ -32,6 +32,15 @@
       plants.forEach(plant => {
         const li = document.createElement('li')
         li.textContent = `${plant.name} (every ${plant.wateringFrequency} days)`
+        const button = document.createElement('button')
+        button.textContent = 'Delete'
+        button.onclick = () => {
+          fetch(`/delete-plant?id=${plant.id}`, { method: 'DELETE' })
+            .then(() => {
+              li.remove()
+            })
+        }
+        li.appendChild(button)
         plantsList.appendChild(li)
       })
     })
