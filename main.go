@@ -83,5 +83,10 @@ func main() {
 		panic(err)
 	}
 
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS plants (id INTEGER PRIMARY KEY, name TEXT, watering_frequency INTEGER)")
+	if err != nil {
+		panic(err)
+	}
+
 	start_server(db)
 }
