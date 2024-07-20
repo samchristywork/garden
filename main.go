@@ -19,6 +19,10 @@ func start_server(db *sql.DB) {
 		http.ServeFile(w, r, "index.html")
 	})
 
+	http.HandleFunc("/script.js", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "script.js")
+	})
+
 	http.HandleFunc("/get-plants", func(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query("SELECT * FROM plants")
 		if err != nil {
