@@ -64,6 +64,8 @@ func start_server(db *sql.DB) {
 		if err != nil {
 			panic(err)
 		}
+
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 
 	http.HandleFunc("/delete-plant", func(w http.ResponseWriter, r *http.Request) {
