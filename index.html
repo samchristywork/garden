@@ -73,13 +73,19 @@ header {
       Settings
     </div>
   </div>
-  <form action="/add-plant" method="post">
-    <label for="name">Name</label>
-    <input type="text" id="name" name="name" required>
-    <label for="wateringFrequency">Watering Frequency</label>
-    <input type="number" id="wateringFrequency" name="wateringFrequency" required>
-    <button type="submit">Add Plant</button>
-  </form>
+  <div class="main">
+    <div>
+      <h1>Plants</h1>
+      <table id="plants"></table>
+    </div>
+    <form action="/add-plant" method="post">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required>
+      <label for="wateringFrequency">Watering Frequency</label>
+      <input type="number" id="wateringFrequency" name="wateringFrequency" required>
+      <button type="submit">Add Plant</button>
+    </form>
+  </div>
 </div>
 <script src="script.js"></script>
 </body>
