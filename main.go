@@ -6,7 +6,6 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"net/http"
-	"os"
 	"strconv"
 )
 
@@ -101,12 +100,8 @@ func start_server(db *sql.DB, port int) {
 }
 
 func main() {
-	filename := "plants.sqlite"
-
-	port, err := strconv.Atoi(os.Getenv("PORT"))
-	if err != nil {
-		port = 8000
-	}
+	filename := ""
+	port := 0
 
 	flag.IntVar(&port, "port", 8000, "Port to listen on (default 8000)")
 	flag.StringVar(&filename, "filename", "plants.sqlite", "Filename of SQLite database (default plants.sqlite)")
