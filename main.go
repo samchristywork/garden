@@ -6,6 +6,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"net/http"
 	"strconv"
+	"os"
 )
 
 type Plant struct {
@@ -14,7 +15,7 @@ type Plant struct {
 	WateringFrequency int
 }
 
-func start_server(db *sql.DB) {
+func start_server(db *sql.DB, port string) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "index.html")
 	})
@@ -93,11 +94,19 @@ func start_server(db *sql.DB) {
 		fmt.Println("Watering plant with ID", id)
 	})
 
-	fmt.Println("Listening on port 8000")
-	http.ListenAndServe(":8000", nil)
+	fmt.Println("Listening on port " + port)
+	portString := fmt.Sprintf(":%s", port)
+	http.ListenAndServe(portString, nil)
 }
 
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: go run main.go <port>")
+		os.Exit(1)
+	}
+
+	port := os.Args[1]
+
 	filename := "plants.sqlite"
 
 	db, err := sql.Open("sqlite3", filename)
@@ -110,5 +119,5 @@ func main() {
 		panic(err)
 	}
 
-	start_server(db)
+	start_server(db, port)
 }
