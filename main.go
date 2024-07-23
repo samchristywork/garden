@@ -101,15 +101,16 @@ func start_server(db *sql.DB, port int) {
 }
 
 func main() {
+	filename := "plants.sqlite"
+
 	port, err := strconv.Atoi(os.Getenv("PORT"))
 	if err != nil {
 		port = 8000
 	}
 
-	flag.IntVar(&port, "port", 8000, "Port to listen on")
+	flag.IntVar(&port, "port", 8000, "Port to listen on (default 8000)")
+	flag.StringVar(&filename, "filename", "plants.sqlite", "Filename of SQLite database (default plants.sqlite)")
 	flag.Parse()
-
-	filename := "plants.sqlite"
 
 	db, err := sql.Open("sqlite3", filename)
 	if err != nil {
