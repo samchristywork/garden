@@ -15,16 +15,25 @@ type Plant struct {
 	WateringFrequency int
 }
 
+func middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.Method, r.URL)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func start_server(db *sql.DB, port int) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "index.html")
 	})
 
-	http.HandleFunc("/script.js", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/script.js", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "script.js")
 	})
 
-	http.HandleFunc("/get-plants", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/get-plants", func(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query("SELECT * FROM plants")
 		if err != nil {
 			panic(err)
@@ -58,7 +67,7 @@ func start_server(db *sql.DB, port int) {
 		w.Write([]byte("]"))
 	})
 
-	http.HandleFunc("/add-plant", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/add-plant", func(w http.ResponseWriter, r *http.Request) {
 		name := r.FormValue("name")
 		wateringFrequency, err := strconv.Atoi(r.FormValue("wateringFrequency"))
 		if err != nil {
@@ -73,7 +82,7 @@ func start_server(db *sql.DB, port int) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 
-	http.HandleFunc("/delete-plant", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/delete-plant", func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.FormValue("id"))
 		if err != nil {
 			panic(err)
@@ -85,7 +94,7 @@ func start_server(db *sql.DB, port int) {
 		}
 	})
 
-	http.HandleFunc("/water-plant", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/water-plant", func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.FormValue("id"))
 		if err != nil {
 			panic(err)
@@ -96,7 +105,7 @@ func start_server(db *sql.DB, port int) {
 
 	fmt.Println("Listening on port " + strconv.Itoa(port))
 	portString := fmt.Sprintf(":%d", port)
-	http.ListenAndServe(portString, nil)
+	http.ListenAndServe(portString, middleware(mux))
 }
 
 func main() {
