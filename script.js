@@ -17,7 +17,10 @@ fetch('/get-plants')
     plants.forEach(plant => {
       const li = document.createElement('tr')
       li.innerHTML = `
-        <td>${plant.name}</td>
+        <td>
+          <span class="material-symbols-outlined more">more_vert</span>
+          <span>${plant.name}</span>
+        </td>
         <td>${plant.wateringFrequency}</td>
         <td>${plant.lastWatered}</td>
         <td>${plant.nextWatering}</td>
