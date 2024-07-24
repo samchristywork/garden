@@ -36,7 +36,7 @@ header {
 
 .all {
   display: grid;
-  grid-template-columns: 10rem 1fr;
+  grid-template-columns: 12rem 1fr;
   min-height: 95vh;
 }
 
@@ -116,6 +116,10 @@ a:hover {
   margin: 0rem;
   font-size: 0.8rem;
 }
+
+.hide {
+  display: none;
+}
     </style>
 </head>
 
@@ -127,8 +131,8 @@ a:hover {
 <div class="all">
   <div class="sidebar">
     <div class="sidebar-item">
-      <span class="material-symbols-outlined">home</span>
-      Home
+      <span class="material-symbols-outlined">schedule</span>
+      Planning
     </div>
     <div class="sidebar-item">
       <span class="material-symbols-outlined">psychiatry</span>
@@ -145,19 +149,27 @@ a:hover {
       »
       <a href="/garden">garden</a>
       »
-      <a href="/garden/plants">plants</a>
+      <a href="/garden/planning" id="slug">planning</a>
     </div>
-    <div>
-      <h1>Plants</h1>
-      <table id="plants"></table>
+    <div class="">
+      <div>
+        <h1>Planning</h1>
+        <div>TODO</div>
+      </div>
     </div>
-    <form action="/add-plant" method="post">
-      <label for="name">Name</label>
-      <input type="text" id="name" name="name" required>
-      <label for="wateringFrequency">Watering Frequency</label>
-      <input type="number" id="wateringFrequency" name="wateringFrequency" required>
-      <button type="submit">Add Plant</button>
-    </form>
+    <div class="hide">
+      <div>
+        <h1>Plants</h1>
+        <table id="plants"></table>
+      </div>
+      <form action="/add-plant" method="post">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+        <label for="wateringFrequency">Watering Frequency</label>
+        <input type="number" id="wateringFrequency" name="wateringFrequency" required>
+        <button type="submit">Add Plant</button>
+      </form>
+    </div>
   </div>
 </div>
 <script src="script.js"></script>
