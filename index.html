@@ -31,6 +31,7 @@ header {
   padding-left: 1rem;
   padding-top: 0.8rem;
   padding-bottom: 0rem;
+  background: linear-gradient(to bottom, #222, #373737);
 }
 
 .all {
@@ -69,6 +70,7 @@ button {
   font-size: 1rem;
   border-radius: 0.25rem;
   box-shadow: 0.1rem 0.1rem 0.1rem rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
 }
 
 button:hover {
@@ -91,6 +93,14 @@ td {
   border: 1px solid #333;
   padding: 0.5rem;
 }
+
+a {
+  color: #333;
+}
+
+a:hover {
+  color: #555;
+}
     </style>
 </head>
 
@@ -112,6 +122,13 @@ td {
     </div>
   </div>
   <div class="main">
+    <div>
+      <a href="/">home</a>
+      »
+      <a href="/garden">garden</a>
+      »
+      <a href="/garden/plants">plants</a>
+    </div>
     <div>
       <h1>Plants</h1>
       <table id="plants"></table>
