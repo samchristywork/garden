@@ -1,1 +1,5 @@
-plants.sqlite
+garden.db
+garden.db-shm
+garden.db-wal
+node_modules
+package-lock.json
