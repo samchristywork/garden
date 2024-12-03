@@ -66,4 +66,24 @@ router.delete("/:id", (req, res) => {
   res.status(204).end();
 });
 
+// PUT /api/beds/:id/cells/:row/:col  — assign or clear a cell
+router.put("/:id/cells/:row/:col", (req, res) => {
+  const { id, row, col } = req.params;
+  const { plant_id } = req.body;
+
+  if (plant_id == null) {
+    db.prepare(
+      "DELETE FROM bed_cells WHERE bed_id=? AND row_num=? AND col_num=?",
+    ).run(Number(id), Number(row), Number(col));
+  } else {
+    db.prepare(
+      `
+      INSERT INTO bed_cells (bed_id, row_num, col_num, plant_id) VALUES (?, ?, ?, ?)
+      ON CONFLICT(bed_id, row_num, col_num) DO UPDATE SET plant_id=excluded.plant_id
+    `,
+    ).run(Number(id), Number(row), Number(col), Number(plant_id));
+  }
+  res.status(204).end();
+});
+
 module.exports = router;
