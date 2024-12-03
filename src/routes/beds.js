@@ -29,3 +29,20 @@ router.get("/:id", (req, res) => {
 
   res.json({ ...bed, cells });
 });
+
+router.post("/", (req, res) => {
+  const { name, rows, cols, notes } = req.body;
+  if (!name) return res.status(400).json({ error: "name is required" });
+  const result = db
+    .prepare(
+      "INSERT INTO garden_beds (name, rows, cols, notes) VALUES (?, ?, ?, ?)",
+    )
+    .run(name, i(rows) ?? 4, i(cols) ?? 6, n(notes));
+  res
+    .status(201)
+    .json(
+      db
+        .prepare("SELECT * FROM garden_beds WHERE id = ?")
+        .get(result.lastInsertRowid),
+    );
+});
