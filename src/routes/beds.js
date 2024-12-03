@@ -9,3 +9,23 @@ router.get("/", (req, res) => {
   const beds = db.prepare("SELECT * FROM garden_beds ORDER BY name").all();
   res.json(beds);
 });
+
+router.get("/:id", (req, res) => {
+  const bed = db
+    .prepare("SELECT * FROM garden_beds WHERE id = ?")
+    .get(req.params.id);
+  if (!bed) return res.status(404).json({ error: "Not found" });
+
+  const cells = db
+    .prepare(
+      `
+    SELECT bc.row_num, bc.col_num, bc.plant_id, p.name AS plant_name, p.color AS plant_color
+    FROM bed_cells bc
+    LEFT JOIN plants p ON p.id = bc.plant_id
+    WHERE bc.bed_id = ? AND bc.plant_id IS NOT NULL
+  `,
+    )
+    .all(req.params.id);
+
+  res.json({ ...bed, cells });
+});
