@@ -46,3 +46,17 @@ router.post("/", (req, res) => {
         .get(result.lastInsertRowid),
     );
 });
+
+router.put("/:id", (req, res) => {
+  const { name, rows, cols, notes } = req.body;
+  if (!name) return res.status(400).json({ error: "name is required" });
+  const info = db
+    .prepare(
+      "UPDATE garden_beds SET name=?, rows=?, cols=?, notes=? WHERE id=?",
+    )
+    .run(name, i(rows) ?? 4, i(cols) ?? 6, n(notes), req.params.id);
+  if (info.changes === 0) return res.status(404).json({ error: "Not found" });
+  res.json(
+    db.prepare("SELECT * FROM garden_beds WHERE id = ?").get(req.params.id),
+  );
+});
