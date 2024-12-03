@@ -60,3 +60,10 @@ router.put("/:id", (req, res) => {
     db.prepare("SELECT * FROM garden_beds WHERE id = ?").get(req.params.id),
   );
 });
+
+router.delete("/:id", (req, res) => {
+  db.prepare("DELETE FROM garden_beds WHERE id = ?").run(req.params.id);
+  res.status(204).end();
+});
+
+module.exports = router;
