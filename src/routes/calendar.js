@@ -51,4 +51,28 @@ router.post("/", (req, res) => {
     );
 });
 
+router.put("/:id", (req, res) => {
+  const { title, event_date, type, plant_id, bed_id, notes } = req.body;
+  if (!title || !event_date)
+    return res.status(400).json({ error: "title and event_date are required" });
+  const info = db
+    .prepare(
+      `
+    UPDATE calendar_events SET title=?, event_date=?, type=?, plant_id=?, bed_id=?, notes=?
+    WHERE id=?
+  `,
+    )
+    .run(
+      title,
+      event_date,
+      n(type) ?? "other",
+      n(plant_id),
+      n(bed_id),
+      n(notes),
+      req.params.id,
+    );
+  if (info.changes === 0) return res.status(404).json({ error: "Not found" });
+  res.json(db.prepare(`${WITH_JOINS} WHERE e.id = ?`).get(req.params.id));
+});
+
 module.exports = router;
