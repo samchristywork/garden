@@ -25,4 +25,30 @@ router.get("/", (req, res) => {
   res.json(db.prepare(`${WITH_JOINS} ORDER BY e.event_date`).all());
 });
 
+router.post("/", (req, res) => {
+  const { title, event_date, type, plant_id, bed_id, notes } = req.body;
+  if (!title || !event_date)
+    return res.status(400).json({ error: "title and event_date are required" });
+  const result = db
+    .prepare(
+      `
+    INSERT INTO calendar_events (title, event_date, type, plant_id, bed_id, notes)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `,
+    )
+    .run(
+      title,
+      event_date,
+      n(type) ?? "other",
+      n(plant_id),
+      n(bed_id),
+      n(notes),
+    );
+  res
+    .status(201)
+    .json(
+      db.prepare(`${WITH_JOINS} WHERE e.id = ?`).get(result.lastInsertRowid),
+    );
+});
+
 module.exports = router;
