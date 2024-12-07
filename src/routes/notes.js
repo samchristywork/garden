@@ -19,4 +19,10 @@ router.get("/", (req, res) => {
   );
 });
 
+router.get("/:id", (req, res) => {
+  const entry = db.prepare(`${WITH_JOINS} WHERE e.id = ?`).get(req.params.id);
+  if (!entry) return res.status(404).json({ error: "Not found" });
+  res.json(entry);
+});
+
 module.exports = router;
