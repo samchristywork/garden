@@ -75,4 +75,9 @@ router.put("/:id", (req, res) => {
   res.json(db.prepare(`${WITH_JOINS} WHERE e.id = ?`).get(req.params.id));
 });
 
+router.delete("/:id", (req, res) => {
+  db.prepare("DELETE FROM calendar_events WHERE id = ?").run(req.params.id);
+  res.status(204).end();
+});
+
 module.exports = router;
