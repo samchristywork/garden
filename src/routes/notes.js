@@ -49,4 +49,27 @@ router.post("/", (req, res) => {
     );
 });
 
+router.put("/:id", (req, res) => {
+  const { title, content, entry_date, plant_id, bed_id } = req.body;
+  if (!title) return res.status(400).json({ error: "title is required" });
+  const info = db
+    .prepare(
+      `
+    UPDATE journal_entries
+    SET title=?, content=?, entry_date=?, plant_id=?, bed_id=?, updated_at=datetime('now')
+    WHERE id=?
+  `,
+    )
+    .run(
+      title,
+      n(content),
+      n(entry_date) ?? new Date().toISOString().slice(0, 10),
+      n(plant_id),
+      n(bed_id),
+      req.params.id,
+    );
+  if (info.changes === 0) return res.status(404).json({ error: "Not found" });
+  res.json(db.prepare(`${WITH_JOINS} WHERE e.id = ?`).get(req.params.id));
+});
+
 module.exports = router;
