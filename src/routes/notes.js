@@ -25,4 +25,28 @@ router.get("/:id", (req, res) => {
   res.json(entry);
 });
 
+router.post("/", (req, res) => {
+  const { title, content, entry_date, plant_id, bed_id } = req.body;
+  if (!title) return res.status(400).json({ error: "title is required" });
+  const result = db
+    .prepare(
+      `
+    INSERT INTO journal_entries (title, content, entry_date, plant_id, bed_id)
+    VALUES (?, ?, ?, ?, ?)
+  `,
+    )
+    .run(
+      title,
+      n(content),
+      n(entry_date) ?? new Date().toISOString().slice(0, 10),
+      n(plant_id),
+      n(bed_id),
+    );
+  res
+    .status(201)
+    .json(
+      db.prepare(`${WITH_JOINS} WHERE e.id = ?`).get(result.lastInsertRowid),
+    );
+});
+
 module.exports = router;
