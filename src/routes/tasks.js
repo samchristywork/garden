@@ -35,3 +35,28 @@ router.get("/", (req, res) => {
       .all(),
   );
 });
+
+router.post("/", (req, res) => {
+  const { title, type, due_date, plant_id, bed_id, notes } = req.body;
+  if (!title) return res.status(400).json({ error: "title is required" });
+  const result = db
+    .prepare(
+      `
+    INSERT INTO tasks (title, type, due_date, plant_id, bed_id, notes)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `,
+    )
+    .run(
+      title,
+      n(type) ?? "other",
+      n(due_date),
+      n(plant_id),
+      n(bed_id),
+      n(notes),
+    );
+  res
+    .status(201)
+    .json(
+      db.prepare(`${WITH_JOINS} WHERE t.id = ?`).get(result.lastInsertRowid),
+    );
+});
