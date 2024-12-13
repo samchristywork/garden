@@ -60,3 +60,42 @@ router.post("/", (req, res) => {
         .get(result.lastInsertRowid),
     );
 });
+
+router.put("/:id", (req, res) => {
+  const {
+    name,
+    type,
+    variety,
+    sun_requirement,
+    water_needs,
+    spacing_inches,
+    days_to_maturity,
+    planting_depth,
+    color,
+    notes,
+  } = req.body;
+  if (!name) return res.status(400).json({ error: "name is required" });
+  const info = db
+    .prepare(
+      `
+    UPDATE plants SET name=?, type=?, variety=?, sun_requirement=?, water_needs=?,
+      spacing_inches=?, days_to_maturity=?, planting_depth=?, color=?, notes=?
+    WHERE id=?
+  `,
+    )
+    .run(
+      name,
+      n(type),
+      n(variety),
+      n(sun_requirement),
+      n(water_needs),
+      i(spacing_inches),
+      i(days_to_maturity),
+      n(planting_depth),
+      n(color) ?? "#4a7c4e",
+      n(notes),
+      req.params.id,
+    );
+  if (info.changes === 0) return res.status(404).json({ error: "Not found" });
+  res.json(db.prepare("SELECT * FROM plants WHERE id = ?").get(req.params.id));
+});
