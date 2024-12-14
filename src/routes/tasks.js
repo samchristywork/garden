@@ -60,3 +60,26 @@ router.post("/", (req, res) => {
       db.prepare(`${WITH_JOINS} WHERE t.id = ?`).get(result.lastInsertRowid),
     );
 });
+
+router.put("/:id", (req, res) => {
+  const { title, type, due_date, plant_id, bed_id, notes } = req.body;
+  if (!title) return res.status(400).json({ error: "title is required" });
+  const info = db
+    .prepare(
+      `
+    UPDATE tasks SET title=?, type=?, due_date=?, plant_id=?, bed_id=?, notes=?
+    WHERE id=?
+  `,
+    )
+    .run(
+      title,
+      n(type) ?? "other",
+      n(due_date),
+      n(plant_id),
+      n(bed_id),
+      n(notes),
+      req.params.id,
+    );
+  if (info.changes === 0) return res.status(404).json({ error: "Not found" });
+  res.json(db.prepare(`${WITH_JOINS} WHERE t.id = ?`).get(req.params.id));
+});
