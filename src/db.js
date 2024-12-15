@@ -21,6 +21,15 @@ db.exec(`
     notes            TEXT,
     created_at       TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS garden_beds (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    rows       INTEGER NOT NULL DEFAULT 4,
+    cols       INTEGER NOT NULL DEFAULT 6,
+    notes      TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 module.exports = db;
