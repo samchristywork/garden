@@ -100,3 +100,10 @@ router.patch("/:id/complete", (req, res) => {
   if (info.changes === 0) return res.status(404).json({ error: "Not found" });
   res.json(db.prepare(`${WITH_JOINS} WHERE t.id = ?`).get(req.params.id));
 });
+
+router.delete("/:id", (req, res) => {
+  db.prepare("DELETE FROM tasks WHERE id = ?").run(req.params.id);
+  res.status(204).end();
+});
+
+module.exports = router;
