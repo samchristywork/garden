@@ -83,3 +83,20 @@ router.put("/:id", (req, res) => {
   if (info.changes === 0) return res.status(404).json({ error: "Not found" });
   res.json(db.prepare(`${WITH_JOINS} WHERE t.id = ?`).get(req.params.id));
 });
+
+router.patch("/:id/complete", (req, res) => {
+  const { completed } = req.body;
+  const info = db
+    .prepare(
+      `
+    UPDATE tasks SET completed=?, completed_at=? WHERE id=?
+  `,
+    )
+    .run(
+      completed ? 1 : 0,
+      completed ? new Date().toISOString() : null,
+      req.params.id,
+    );
+  if (info.changes === 0) return res.status(404).json({ error: "Not found" });
+  res.json(db.prepare(`${WITH_JOINS} WHERE t.id = ?`).get(req.params.id));
+});
