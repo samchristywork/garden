@@ -50,6 +50,19 @@ db.exec(`
     notes      TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS tasks (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    title        TEXT NOT NULL,
+    type         TEXT NOT NULL DEFAULT 'other',
+    due_date     TEXT,
+    plant_id     INTEGER REFERENCES plants(id) ON DELETE SET NULL,
+    bed_id       INTEGER REFERENCES garden_beds(id) ON DELETE SET NULL,
+    completed    INTEGER NOT NULL DEFAULT 0,
+    completed_at TEXT,
+    notes        TEXT,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 module.exports = db;
