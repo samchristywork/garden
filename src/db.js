@@ -39,6 +39,17 @@ db.exec(`
     plant_id INTEGER REFERENCES plants(id) ON DELETE SET NULL,
     UNIQUE(bed_id, row_num, col_num)
   );
+
+  CREATE TABLE IF NOT EXISTS calendar_events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    title      TEXT NOT NULL,
+    event_date TEXT NOT NULL,
+    type       TEXT NOT NULL DEFAULT 'other',
+    plant_id   INTEGER REFERENCES plants(id) ON DELETE SET NULL,
+    bed_id     INTEGER REFERENCES garden_beds(id) ON DELETE SET NULL,
+    notes      TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 module.exports = db;
