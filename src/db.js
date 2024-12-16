@@ -30,6 +30,15 @@ db.exec(`
     notes      TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS bed_cells (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    bed_id   INTEGER NOT NULL REFERENCES garden_beds(id) ON DELETE CASCADE,
+    row_num  INTEGER NOT NULL,
+    col_num  INTEGER NOT NULL,
+    plant_id INTEGER REFERENCES plants(id) ON DELETE SET NULL,
+    UNIQUE(bed_id, row_num, col_num)
+  );
 `);
 
 module.exports = db;
