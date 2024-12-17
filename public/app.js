@@ -773,3 +773,253 @@ function getDueCls(due, completed) {
   if (diff <= 3) return 'due-soon';
   return '';
 }
+
+qsa('.filter-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    qsa('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    taskFilter = tab.dataset.filter;
+    renderTasks();
+  });
+});
+
+get('btn-add-task').addEventListener('click', () => showTaskForm(null));
+
+function taskFormHtml(t) {
+  const plants = allPlants.map(p => `<option value="${p.id}" ${t?.plant_id===p.id?'selected':''}>${escHtml(p.name)}</option>`).join('');
+  const beds   = allBeds.map(b => `<option value="${b.id}" ${t?.bed_id===b.id?'selected':''}>${escHtml(b.name)}</option>`).join('');
+  return `<form id="task-form">
+    <div class="form-row">
+      <label>Title *</label>
+      <input class="input" name="title" value="${escHtml(t?.title || '')}" required>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Type</label>
+        <select class="input" name="type">
+          ${['water','fertilize','prune','harvest','pest-control','plant','other'].map(v =>
+            `<option value="${v}" ${t?.type===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Due Date</label>
+        <input class="input" type="date" name="due_date" value="${t?.due_date || ''}">
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Plant</label>
+        <select class="input" name="plant_id">
+          <option value="">— none —</option>${plants}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Bed</label>
+        <select class="input" name="bed_id">
+          <option value="">— none —</option>${beds}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea class="input" name="notes">${escHtml(t?.notes || '')}</textarea>
+    </div>
+    <div class="form-actions">
+      ${t ? `<button type="button" class="btn btn-danger btn-sm" id="btn-del-task">Delete</button>` : ''}
+      <button type="button" class="btn btn-ghost" id="btn-cancel-task">Cancel</button>
+      <button type="submit" class="btn btn-primary">${t ? 'Save Changes' : 'Add Task'}</button>
+    </div>
+  </form>`;
+}
+
+function showTaskForm(task) {
+  Modal.show(task ? 'Edit Task' : 'New Task', taskFormHtml(task), async (form) => {
+    const data = formData(form);
+    try {
+      if (task) {
+        await api('PUT', `/api/tasks/${task.id}`, data);
+      } else {
+        await api('POST', '/api/tasks', data);
+      }
+      Modal.close();
+      await loadTasks();
+    } catch (e) { alert(e.message); }
+  });
+  const cancelBtn = get('btn-cancel-task');
+  if (cancelBtn) cancelBtn.onclick = Modal.close;
+  const delBtn = get('btn-del-task');
+  if (delBtn) delBtn.onclick = async () => {
+    if (!confirm('Delete this task?')) return;
+    await api('DELETE', `/api/tasks/${task.id}`);
+    Modal.close();
+    await loadTasks();
+  };
+}
+
+let allNotes = [];
+let currentNoteId = null;
+
+async function loadNotes() {
+  allNotes = await api('GET', '/api/notes');
+  showNoteListView();
+  renderNotes();
+}
+
+function showNoteListView() {
+  get('journal-list-view').classList.remove('hidden');
+  get('journal-entry-view').classList.add('hidden');
+}
+
+function renderNotes() {
+  const list = get('notes-list');
+  list.innerHTML = '';
+  if (!allNotes.length) {
+    list.innerHTML = '<div class="notes-empty">No journal entries yet. Record your first observation!</div>';
+    return;
+  }
+  allNotes.forEach(n => {
+    const card = el('div', 'note-card');
+    const preview = (n.content || '').replace(/\n/g, ' ').slice(0, 140);
+    const tags = [n.plant_name, n.bed_name].filter(Boolean);
+    card.innerHTML = `
+      <div class="note-card-header">
+        <div class="note-card-title">${escHtml(n.title)}</div>
+        <div class="note-card-date">${fmtDate(n.entry_date)}</div>
+      </div>
+      ${preview ? `<div class="note-card-preview">${escHtml(preview)}</div>` : ''}
+      ${tags.length ? `<div class="note-card-tags">${tags.map(t=>`<span class="note-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}`;
+    card.onclick = () => openNote(n.id);
+    list.appendChild(card);
+  });
+}
+
+async function openNote(noteId) {
+  currentNoteId = noteId;
+  const note = await api('GET', `/api/notes/${noteId}`);
+  get('journal-list-view').classList.add('hidden');
+  get('journal-entry-view').classList.remove('hidden');
+
+  const tags = [note.plant_name, note.bed_name].filter(Boolean);
+  get('journal-entry-body').innerHTML = `
+    <h2>${escHtml(note.title)}</h2>
+    <div class="entry-date">${fmtDate(note.entry_date)}</div>
+    ${tags.length ? `<div class="entry-tags">${tags.map(t=>`<span class="note-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
+    <div class="entry-content">${escHtml(note.content || '')}</div>`;
+}
+
+get('btn-back-journal').addEventListener('click', () => {
+  showNoteListView();
+});
+
+get('btn-add-note').addEventListener('click', () => showNoteForm(null));
+
+get('btn-edit-note').addEventListener('click', async () => {
+  const note = await api('GET', `/api/notes/${currentNoteId}`);
+  showNoteForm(note);
+});
+
+get('btn-delete-note').addEventListener('click', async () => {
+  if (!confirm('Delete this journal entry?')) return;
+  await api('DELETE', `/api/notes/${currentNoteId}`);
+  showNoteListView();
+  await loadNotes();
+});
+
+function noteFormHtml(n) {
+  const plants = allPlants.map(p => `<option value="${p.id}" ${n?.plant_id===p.id?'selected':''}>${escHtml(p.name)}</option>`).join('');
+  const beds   = allBeds.map(b => `<option value="${b.id}" ${n?.bed_id===b.id?'selected':''}>${escHtml(b.name)}</option>`).join('');
+  return `<form id="note-form">
+    <div class="form-row">
+      <label>Title *</label>
+      <input class="input" name="title" value="${escHtml(n?.title || '')}" required>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Date</label>
+        <input class="input" type="date" name="entry_date" value="${n?.entry_date || today()}" required>
+      </div>
+      <div class="form-row"></div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Plant</label>
+        <select class="input" name="plant_id">
+          <option value="">— none —</option>${plants}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Bed</label>
+        <select class="input" name="bed_id">
+          <option value="">— none —</option>${beds}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Content</label>
+      <textarea class="input" name="content" style="min-height:160px">${escHtml(n?.content || '')}</textarea>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" id="btn-cancel-note">Cancel</button>
+      <button type="submit" class="btn btn-primary">${n ? 'Save Changes' : 'Add Entry'}</button>
+    </div>
+  </form>`;
+}
+
+function showNoteForm(note) {
+  Modal.show(note ? 'Edit Entry' : 'New Journal Entry', noteFormHtml(note), async (form) => {
+    const data = formData(form);
+    try {
+      if (note) {
+        await api('PUT', `/api/notes/${note.id}`, data);
+        Modal.close();
+        await loadNotes();
+        await openNote(note.id);
+      } else {
+        const created = await api('POST', '/api/notes', data);
+        Modal.close();
+        await loadNotes();
+        await openNote(created.id);
+      }
+    } catch (e) { alert(e.message); }
+  });
+  const cancelBtn = get('btn-cancel-note');
+  if (cancelBtn) cancelBtn.onclick = Modal.close;
+}
+
+function formData(form) {
+  const fd = new FormData(form);
+  const obj = {};
+  for (const [k, v] of fd.entries()) {
+    // Skip the color_picker helper field
+    if (k === 'color_picker') continue;
+    obj[k] = v === '' ? null : v;
+    // Coerce numeric fields
+    if (['spacing_inches','days_to_maturity','rows','cols','plant_id','bed_id'].includes(k) && v !== '') {
+      obj[k] = v === '' ? null : Number(v);
+    }
+  }
+  return obj;
+}
+
+function escHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Prefetch plants and beds so they're available everywhere
+  try {
+    [allPlants, allBeds] = await Promise.all([
+      api('GET', '/api/plants'),
+      api('GET', '/api/beds'),
+    ]);
+  } catch (e) {
+    console.error('Failed to preload data:', e);
+  }
+  navigate('dashboard');
+});
