@@ -268,3 +268,250 @@ function plantFormHtml(p) {
     </div>
   </form>`;
 }
+
+function showPlantForm(plant) {
+  Modal.show(plant ? 'Edit Plant' : 'Add Plant', plantFormHtml(plant), async (form) => {
+    const data = formData(form);
+    try {
+      if (plant) {
+        await api('PUT', `/api/plants/${plant.id}`, data);
+      } else {
+        await api('POST', '/api/plants', data);
+      }
+      Modal.close();
+      await loadPlants();
+    } catch (e) { alert(e.message); }
+  });
+
+  // Sync color picker <-> text input
+  const picker = qs('[name="color_picker"]', get('modal-body'));
+  const colorText = qs('[name="color"]', get('modal-body'));
+  picker.oninput = () => { colorText.value = picker.value; };
+  colorText.oninput = () => { if (/^#[0-9a-fA-F]{6}$/.test(colorText.value)) picker.value = colorText.value; };
+
+  const cancelBtn = get('btn-cancel-plant');
+  if (cancelBtn) cancelBtn.onclick = Modal.close;
+
+  const delBtn = get('btn-del-plant');
+  if (delBtn) delBtn.onclick = async () => {
+    if (!confirm(`Delete "${plant.name}"? This will remove it from all bed layouts.`)) return;
+    await api('DELETE', `/api/plants/${plant.id}`);
+    Modal.close();
+    await loadPlants();
+  };
+}
+
+let allBeds = [];
+let currentBedId = null;
+
+async function loadBeds() {
+  allBeds = await api('GET', '/api/beds');
+  showBedsListView();
+  renderBeds();
+}
+
+function showBedsListView() {
+  get('beds-list-view').classList.remove('hidden');
+  get('bed-detail-view').classList.add('hidden');
+}
+
+function renderBeds() {
+  const grid = get('beds-grid');
+  grid.innerHTML = '';
+  if (!allBeds.length) {
+    grid.innerHTML = '<div class="bed-card-empty">No beds yet. Add one to start planning your layout.</div>';
+    return;
+  }
+  allBeds.forEach(b => {
+    const card = el('div', 'bed-card');
+    // Mini preview grid (up to 6x4)
+    const previewRows = Math.min(b.rows, 4);
+    const previewCols = Math.min(b.cols, 6);
+    let previewHtml = `<div class="bed-card-preview" style="--cols:${previewCols}">`;
+    for (let r = 0; r < previewRows; r++) {
+      previewHtml += '<div class="bed-preview-row">';
+      for (let c = 0; c < previewCols; c++) previewHtml += '<div class="bed-preview-cell"></div>';
+      previewHtml += '</div>';
+    }
+    previewHtml += '</div>';
+    card.innerHTML = `
+      <div class="bed-card-name">${escHtml(b.name)}</div>
+      <div class="bed-card-dims">${b.rows} rows &times; ${b.cols} columns</div>
+      ${previewHtml}`;
+    card.onclick = () => openBedDetail(b.id);
+    grid.appendChild(card);
+  });
+}
+
+async function openBedDetail(bedId) {
+  currentBedId = bedId;
+  const bed = await api('GET', `/api/beds/${bedId}`);
+  get('beds-list-view').classList.add('hidden');
+  get('bed-detail-view').classList.remove('hidden');
+  get('bed-detail-name').textContent = bed.name;
+  renderBedDetail(bed);
+}
+
+function renderBedDetail(bed) {
+  const body = get('bed-detail-body');
+
+  // Build a cell lookup: "row,col" -> cell info
+  const cellMap = {};
+  (bed.cells || []).forEach(c => { cellMap[`${c.row_num},${c.col_num}`] = c; });
+
+  // Legend
+  const legend = {};
+  (bed.cells || []).forEach(c => {
+    if (c.plant_id && !legend[c.plant_id]) legend[c.plant_id] = { name: c.plant_name, color: c.plant_color };
+  });
+
+  // Build table
+  let tableHtml = '<table class="bed-grid"><thead><tr><th></th>';
+  for (let c = 0; c < bed.cols; c++) tableHtml += `<th>${c + 1}</th>`;
+  tableHtml += '</tr></thead><tbody>';
+
+  for (let r = 0; r < bed.rows; r++) {
+    tableHtml += `<tr><th>${r + 1}</th>`;
+    for (let c = 0; c < bed.cols; c++) {
+      const cell = cellMap[`${r},${c}`];
+      const color = cell?.plant_color || '';
+      const name  = cell?.plant_name  || '';
+      const style = color ? `style="background:${escHtml(color)}"` : '';
+      const cls   = color ? 'bed-cell-inner planted' : 'bed-cell-inner';
+      tableHtml += `<td class="bed-cell" data-row="${r}" data-col="${c}">
+        <div class="${cls}" ${style}>${escHtml(name)}</div></td>`;
+    }
+    tableHtml += '</tr>';
+  }
+  tableHtml += '</tbody></table>';
+
+  let legendHtml = '';
+  const legendItems = Object.entries(legend);
+  if (legendItems.length) {
+    legendHtml = '<div class="bed-legend"><h3>Plants</h3>';
+    legendItems.forEach(([, info]) => {
+      legendHtml += `<div class="legend-item">
+        <div class="legend-swatch" style="background:${escHtml(info.color)}"></div>
+        <span>${escHtml(info.name)}</span></div>`;
+    });
+    legendHtml += '</div>';
+  }
+
+  const notesHtml = bed.notes ? `<div class="bed-notes">${escHtml(bed.notes)}</div>` : '';
+
+  body.innerHTML = `<div class="bed-detail-body">
+    <div class="bed-grid-wrap">${tableHtml}</div>
+    ${legendHtml}
+  </div>${notesHtml}`;
+
+  // Cell click
+  qsa('.bed-cell', body).forEach(cell => {
+    cell.addEventListener('click', () => {
+      assignPlantToCell(bed.id, +cell.dataset.row, +cell.dataset.col, cellMap[`${cell.dataset.row},${cell.dataset.col}`]?.plant_id || null);
+    });
+  });
+}
+
+async function assignPlantToCell(bedId, row, col, currentPlantId) {
+  const options = allPlants.map(p =>
+    `<div class="cell-picker-option ${currentPlantId === p.id ? 'selected' : ''}" data-id="${p.id}">
+      <div class="cell-swatch" style="background:${escHtml(p.color)}"></div>${escHtml(p.name)}
+    </div>`
+  ).join('');
+
+  const clearBtn = currentPlantId
+    ? `<div class="cell-picker-option clear" data-id="__clear">&#10005; Clear cell</div>`
+    : '';
+
+  Modal.show('Assign Plant', `
+    <p style="margin-bottom:12px;font-size:13px;color:var(--text-muted)">Row ${row+1}, Column ${col+1}</p>
+    <div class="cell-picker">${clearBtn}${options || '<p style="color:var(--text-muted);font-style:italic">No plants in catalog yet.</p>'}</div>
+  `);
+
+  qsa('.cell-picker-option', get('modal-body')).forEach(opt => {
+    opt.addEventListener('click', async () => {
+      const rawId = opt.dataset.id;
+      const plantId = rawId === '__clear' ? null : +rawId;
+      await api('PUT', `/api/beds/${bedId}/cells/${row}/${col}`, { plant_id: plantId });
+      Modal.close();
+      const bed = await api('GET', `/api/beds/${bedId}`);
+      renderBedDetail(bed);
+    });
+  });
+}
+
+function bedFormHtml(b) {
+  return `<form id="bed-form">
+    <div class="form-row">
+      <label>Name *</label>
+      <input class="input" name="name" value="${escHtml(b?.name || '')}" required>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Rows</label>
+        <input class="input" type="number" name="rows" min="1" max="20" value="${b?.rows || 4}" required>
+      </div>
+      <div class="form-row">
+        <label>Columns</label>
+        <input class="input" type="number" name="cols" min="1" max="20" value="${b?.cols || 6}" required>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea class="input" name="notes">${escHtml(b?.notes || '')}</textarea>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" id="btn-cancel-bed">Cancel</button>
+      <button type="submit" class="btn btn-primary">${b ? 'Save Changes' : 'Create Bed'}</button>
+    </div>
+  </form>`;
+}
+
+get('btn-add-bed').addEventListener('click', () => {
+  Modal.show('New Garden Bed', bedFormHtml(null), async (form) => {
+    const data = formData(form);
+    try {
+      await api('POST', '/api/beds', data);
+      Modal.close();
+      await loadBeds();
+    } catch (e) { alert(e.message); }
+  });
+  const cancelBtn = get('btn-cancel-bed');
+  if (cancelBtn) cancelBtn.onclick = Modal.close;
+});
+
+get('btn-back-beds').addEventListener('click', async () => {
+  showBedsListView();
+  await loadBeds();
+});
+
+get('btn-edit-bed').addEventListener('click', async () => {
+  const bed = await api('GET', `/api/beds/${currentBedId}`);
+  Modal.show('Edit Bed', bedFormHtml(bed), async (form) => {
+    const data = formData(form);
+    try {
+      await api('PUT', `/api/beds/${currentBedId}`, data);
+      Modal.close();
+      await openBedDetail(currentBedId);
+    } catch (e) { alert(e.message); }
+  });
+  const cancelBtn = get('btn-cancel-bed');
+  if (cancelBtn) cancelBtn.onclick = Modal.close;
+});
+
+get('btn-delete-bed').addEventListener('click', async () => {
+  const bed = allBeds.find(b => b.id === currentBedId);
+  if (!confirm(`Delete "${bed?.name}"? This cannot be undone.`)) return;
+  await api('DELETE', `/api/beds/${currentBedId}`);
+  showBedsListView();
+  await loadBeds();
+});
+
+let calYear  = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-based
+let allEvents = [];
+
+async function loadCalendar() {
+  allEvents = await api('GET', '/api/calendar');
+  renderCalendar();
+}
