@@ -515,3 +515,261 @@ async function loadCalendar() {
   allEvents = await api('GET', '/api/calendar');
   renderCalendar();
 }
+
+function renderCalendar() {
+  const MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  get('cal-month-label').textContent = `${MONTHS[calMonth]} ${calYear}`;
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+  const todayStr = today();
+
+  // Event lookup by date
+  const eventsByDate = {};
+  allEvents.forEach(ev => {
+    if (!eventsByDate[ev.event_date]) eventsByDate[ev.event_date] = [];
+    eventsByDate[ev.event_date].push(ev);
+  });
+
+  const grid = get('calendar-grid');
+  grid.innerHTML = '';
+
+  // Day headers
+  DAYS.forEach(d => {
+    grid.appendChild(el('div', 'cal-day-header', d));
+  });
+
+  // Leading blanks
+  for (let i = 0; i < firstDay; i++) {
+    const dayEl = el('div', 'cal-day other-month');
+    dayEl.innerHTML = `<div class="cal-day-num">${daysInPrev - firstDay + 1 + i}</div>`;
+    grid.appendChild(dayEl);
+  }
+
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const dayEl = el('div', `cal-day${isToday ? ' today' : ''}`);
+    dayEl.innerHTML = `<div class="cal-day-num">${d}</div>`;
+
+    const evs = eventsByDate[dateStr] || [];
+    evs.slice(0, 3).forEach(ev => {
+      const evEl = el('div', 'cal-event', escHtml(ev.title));
+      evEl.style.background = eventTypeColor(ev.type);
+      evEl.title = ev.title;
+      evEl.onclick = (e) => { e.stopPropagation(); showEventForm(ev); };
+      dayEl.appendChild(evEl);
+    });
+    if (evs.length > 3) {
+      dayEl.appendChild(el('div', 'cal-event', `+${evs.length - 3} more`));
+    }
+
+    dayEl.addEventListener('click', () => showEventForm(null, dateStr));
+    grid.appendChild(dayEl);
+  }
+
+  // Trailing blanks
+  const total = firstDay + daysInMonth;
+  const trailing = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let i = 1; i <= trailing; i++) {
+    const dayEl = el('div', 'cal-day other-month');
+    dayEl.innerHTML = `<div class="cal-day-num">${i}</div>`;
+    grid.appendChild(dayEl);
+  }
+
+  // Event list for current month
+  const monthStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const monthEvents = allEvents.filter(ev => ev.event_date.startsWith(monthStr));
+  monthEvents.sort((a,b) => a.event_date.localeCompare(b.event_date));
+
+  const listEl = get('calendar-event-list');
+  listEl.innerHTML = '';
+  monthEvents.forEach(ev => {
+    const item = el('div', 'event-item');
+    item.innerHTML = `
+      <div class="event-date-badge">${fmtDate(ev.event_date)}</div>
+      <div class="event-info">
+        <div class="event-title">${escHtml(ev.title)}</div>
+        <div class="event-meta">${ev.type}${ev.plant_name ? ` &bull; ${escHtml(ev.plant_name)}` : ''}${ev.bed_name ? ` &bull; ${escHtml(ev.bed_name)}` : ''}</div>
+      </div>
+      <div class="event-actions">
+        <button class="btn btn-ghost btn-sm btn-edit-event">Edit</button>
+        <button class="btn btn-danger btn-sm btn-del-event">Delete</button>
+      </div>`;
+    qs('.btn-edit-event', item).onclick = () => showEventForm(ev);
+    qs('.btn-del-event', item).onclick  = async () => {
+      if (!confirm('Delete this event?')) return;
+      await api('DELETE', `/api/calendar/${ev.id}`);
+      await loadCalendar();
+    };
+    listEl.appendChild(item);
+  });
+}
+
+get('cal-prev').onclick = () => {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+};
+get('cal-next').onclick = () => {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+};
+
+get('btn-add-event').addEventListener('click', () => showEventForm(null, today()));
+
+function eventFormHtml(ev, defaultDate) {
+  const plants = allPlants.map(p => `<option value="${p.id}" ${ev?.plant_id===p.id?'selected':''}>${escHtml(p.name)}</option>`).join('');
+  const beds   = allBeds.map(b => `<option value="${b.id}" ${ev?.bed_id===b.id?'selected':''}>${escHtml(b.name)}</option>`).join('');
+  return `<form id="event-form">
+    <div class="form-row">
+      <label>Title *</label>
+      <input class="input" name="title" value="${escHtml(ev?.title || '')}" required>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Date *</label>
+        <input class="input" type="date" name="event_date" value="${ev?.event_date || defaultDate || today()}" required>
+      </div>
+      <div class="form-row">
+        <label>Type</label>
+        <select class="input" name="type">
+          ${['plant','transplant','harvest','fertilize','prune','water','other'].map(t =>
+            `<option value="${t}" ${ev?.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Plant</label>
+        <select class="input" name="plant_id">
+          <option value="">— none —</option>${plants}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Bed</label>
+        <select class="input" name="bed_id">
+          <option value="">— none —</option>${beds}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea class="input" name="notes">${escHtml(ev?.notes || '')}</textarea>
+    </div>
+    <div class="form-actions">
+      ${ev ? `<button type="button" class="btn btn-danger btn-sm" id="btn-del-event">Delete</button>` : ''}
+      <button type="button" class="btn btn-ghost" id="btn-cancel-event">Cancel</button>
+      <button type="submit" class="btn btn-primary">${ev ? 'Save Changes' : 'Add Event'}</button>
+    </div>
+  </form>`;
+}
+
+function showEventForm(ev, defaultDate) {
+  Modal.show(ev ? 'Edit Event' : 'New Event', eventFormHtml(ev, defaultDate), async (form) => {
+    const data = formData(form);
+    try {
+      if (ev) {
+        await api('PUT', `/api/calendar/${ev.id}`, data);
+      } else {
+        await api('POST', '/api/calendar', data);
+      }
+      Modal.close();
+      await loadCalendar();
+    } catch (e) { alert(e.message); }
+  });
+  const cancelBtn = get('btn-cancel-event');
+  if (cancelBtn) cancelBtn.onclick = Modal.close;
+  const delBtn = get('btn-del-event');
+  if (delBtn) delBtn.onclick = async () => {
+    if (!confirm('Delete this event?')) return;
+    await api('DELETE', `/api/calendar/${ev.id}`);
+    Modal.close();
+    await loadCalendar();
+  };
+}
+
+function eventTypeColor(type) {
+  const colors = {
+    plant:      '#4a7c4e',
+    transplant: '#2a6b9c',
+    harvest:    '#5a8a3a',
+    fertilize:  '#b49a20',
+    prune:      '#7c4a7a',
+    water:      '#2a7a9c',
+    other:      '#7a7a7a',
+  };
+  return colors[type] || colors.other;
+}
+
+let allTasks = [];
+let taskFilter = 'pending';
+
+async function loadTasks() {
+  allTasks = await api('GET', '/api/tasks');
+  renderTasks();
+}
+
+function renderTasks() {
+  let list = allTasks;
+  if (taskFilter === 'pending')   list = list.filter(t => !t.completed);
+  if (taskFilter === 'completed') list = list.filter(t => t.completed);
+
+  const container = get('tasks-list');
+  container.innerHTML = '';
+
+  if (!list.length) {
+    container.innerHTML = `<div class="tasks-empty">No ${taskFilter} tasks.</div>`;
+    return;
+  }
+
+  list.forEach(t => {
+    const item = el('div', `task-item${t.completed ? ' completed' : ''}`);
+
+    const checkEl = el('div', `task-checkbox${t.completed ? ' checked' : ''}`);
+    if (t.completed) checkEl.innerHTML = '&#10003;';
+    checkEl.addEventListener('click', async () => {
+      await api('PATCH', `/api/tasks/${t.id}/complete`, { completed: !t.completed });
+      await loadTasks();
+    });
+
+    const dueCls = getDueCls(t.due_date, t.completed);
+    const dueTxt = t.due_date ? fmtDate(t.due_date) : 'No due date';
+
+    const info = el('div', 'task-info');
+    info.innerHTML = `
+      <div class="task-title${t.completed ? ' done' : ''}">${escHtml(t.title)}</div>
+      <div class="task-meta">
+        <span class="badge badge-${t.type.replace('-','')}">${t.type}</span>
+        <span class="due-date ${dueCls}">${dueTxt}</span>
+        ${t.plant_name ? `<span class="note-tag">${escHtml(t.plant_name)}</span>` : ''}
+        ${t.bed_name   ? `<span class="note-tag">${escHtml(t.bed_name)}</span>`   : ''}
+      </div>`;
+
+    const actions = el('div', 'task-actions');
+    const editBtn = el('button', 'btn btn-ghost btn-sm', 'Edit');
+    editBtn.onclick = () => showTaskForm(t);
+    actions.appendChild(editBtn);
+
+    item.appendChild(checkEl);
+    item.appendChild(info);
+    item.appendChild(actions);
+    container.appendChild(item);
+  });
+}
+
+function getDueCls(due, completed) {
+  if (!due || completed) return '';
+  const d = new Date(due + 'T00:00:00');
+  const now = new Date(); now.setHours(0,0,0,0);
+  const diff = (d - now) / 86400000;
+  if (diff < 0)  return 'due-overdue';
+  if (diff <= 3) return 'due-soon';
+  return '';
+}
