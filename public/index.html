@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garden Planner</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-icon">&#127807;</span>
+        <span class="logo-text">Garden Planner</span>
+      </div>
+      <ul class="nav-list">
+        <li class="nav-item active" data-section="dashboard">
+          <span class="nav-icon">&#9632;</span> Dashboard
+        </li>
+        <li class="nav-item" data-section="plants">
+          <span class="nav-icon">&#127807;</span> Plants
+        </li>
+        <li class="nav-item" data-section="beds">
+          <span class="nav-icon">&#9635;</span> Garden Beds
+        </li>
+        <li class="nav-item" data-section="calendar">
+          <span class="nav-icon">&#128197;</span> Calendar
+        </li>
+        <li class="nav-item" data-section="tasks">
+          <span class="nav-icon">&#9989;</span> Tasks
+        </li>
+        <li class="nav-item" data-section="journal">
+          <span class="nav-icon">&#128214;</span> Journal
+        </li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <!-- Dashboard -->
+      <section id="section-dashboard" class="section">
+        <div class="section-header">
+          <h1>Dashboard</h1>
+        </div>
+        <div id="dashboard-stats" class="stats-grid"></div>
+        <div class="dashboard-grid">
+          <div class="dashboard-col">
+            <h2 class="panel-title">Upcoming Tasks</h2>
+            <div id="dashboard-tasks" class="panel-list"></div>
+          </div>
+          <div class="dashboard-col">
+            <h2 class="panel-title">Upcoming Events</h2>
+            <div id="dashboard-events" class="panel-list"></div>
+          </div>
+          <div class="dashboard-col">
+            <h2 class="panel-title">Recent Journal</h2>
+            <div id="dashboard-journal" class="panel-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Plants -->
+      <section id="section-plants" class="section hidden">
+        <div class="section-header">
+          <h1>Plant Catalog</h1>
+          <button class="btn btn-primary" id="btn-add-plant">+ Add Plant</button>
+        </div>
+        <div class="search-bar">
+          <input type="text" id="plant-search" placeholder="Search plants..." class="input">
+          <select id="plant-type-filter" class="input select">
+            <option value="">All types</option>
+            <option>vegetable</option>
+            <option>fruit</option>
+            <option>herb</option>
+            <option>flower</option>
+            <option>tree</option>
+            <option>other</option>
+          </select>
+        </div>
+        <div id="plants-grid" class="plants-grid"></div>
+      </section>
+
+      <!-- Garden Beds -->
+      <section id="section-beds" class="section hidden">
+        <div id="beds-list-view">
+          <div class="section-header">
+            <h1>Garden Beds</h1>
+            <button class="btn btn-primary" id="btn-add-bed">+ Add Bed</button>
+          </div>
+          <div id="beds-grid" class="beds-grid"></div>
+        </div>
+        <div id="bed-detail-view" class="hidden">
+          <div class="section-header">
+            <button class="btn btn-ghost" id="btn-back-beds">&larr; All Beds</button>
+            <h1 id="bed-detail-name"></h1>
+            <div class="header-actions">
+              <button class="btn btn-secondary" id="btn-edit-bed">Edit</button>
+              <button class="btn btn-danger" id="btn-delete-bed">Delete</button>
+            </div>
+          </div>
+          <div id="bed-detail-body"></div>
+        </div>
+      </section>
+
+      <!-- Calendar -->
+      <section id="section-calendar" class="section hidden">
+        <div class="section-header">
+          <h1>Planting Calendar</h1>
+          <button class="btn btn-primary" id="btn-add-event">+ Add Event</button>
+        </div>
+        <div class="calendar-nav">
+          <button class="btn btn-ghost" id="cal-prev">&larr;</button>
+          <span id="cal-month-label" class="cal-month-label"></span>
+          <button class="btn btn-ghost" id="cal-next">&rarr;</button>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+        <div id="calendar-event-list" class="event-list-panel"></div>
+      </section>
+
+      <!-- Tasks -->
+      <section id="section-tasks" class="section hidden">
+        <div class="section-header">
+          <h1>Tasks</h1>
+          <button class="btn btn-primary" id="btn-add-task">+ Add Task</button>
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="pending">Pending</button>
+          <button class="filter-tab" data-filter="all">All</button>
+          <button class="filter-tab" data-filter="completed">Completed</button>
+        </div>
+        <div id="tasks-list" class="tasks-list"></div>
+      </section>
+
+      <!-- Journal -->
+      <section id="section-journal" class="section hidden">
+        <div class="section-header">
+          <h1>Garden Journal</h1>
+          <button class="btn btn-primary" id="btn-add-note">+ New Entry</button>
+        </div>
+        <div id="journal-list-view">
+          <div id="notes-list" class="notes-list"></div>
+        </div>
+        <div id="journal-entry-view" class="hidden">
+          <div class="section-header">
+            <button class="btn btn-ghost" id="btn-back-journal">&larr; All Entries</button>
+            <div class="header-actions">
+              <button class="btn btn-secondary" id="btn-edit-note">Edit</button>
+              <button class="btn btn-danger" id="btn-delete-note">Delete</button>
+            </div>
+          </div>
+          <div id="journal-entry-body" class="entry-body"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title"></h2>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
