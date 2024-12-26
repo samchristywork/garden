@@ -390,3 +390,77 @@ textarea.input { resize: vertical; min-height: 80px; }
 .event-title { font-weight: 500; font-size: 14px; }
 .event-meta  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .event-actions { display: flex; gap: 6px; }
+
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+.filter-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-muted);
+  transition: background .15s, color .15s;
+}
+.filter-tab:hover  { background: var(--green-50); color: var(--text); }
+.filter-tab.active { background: var(--green-600); color: #fff; border-color: var(--green-600); }
+
+.tasks-list { display: flex; flex-direction: column; gap: 8px; }
+
+.task-item {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.task-item.completed { opacity: .6; }
+.task-checkbox {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, border-color .15s;
+}
+.task-checkbox.checked { background: var(--green-600); border-color: var(--green-600); color: #fff; font-size: 11px; }
+.task-checkbox:hover:not(.checked) { border-color: var(--green-500); }
+
+.task-info { flex: 1; min-width: 0; }
+.task-title { font-weight: 500; font-size: 14px; }
+.task-title.done { text-decoration: line-through; color: var(--text-muted); }
+.task-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; align-items: center; }
+.task-actions { display: flex; gap: 6px; align-items: center; }
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-water     { background: #dbeafe; color: #1d4ed8; }
+.badge-fertilize { background: #fef3c7; color: #b45309; }
+.badge-prune     { background: #ede9fe; color: #6d28d9; }
+.badge-harvest   { background: #dcfce7; color: #166534; }
+.badge-pest      { background: #fee2e2; color: #991b1b; }
+.badge-plant     { background: var(--green-100); color: var(--green-800); }
+.badge-transplant{ background: #e0f2fe; color: #0369a1; }
+.badge-other     { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+
+.due-date { font-size: 12px; color: var(--text-muted); }
+.due-overdue { color: var(--danger); font-weight: 500; }
+.due-soon    { color: var(--warning); font-weight: 500; }
+
+.tasks-empty { text-align: center; padding: 40px; color: var(--text-muted); font-style: italic; }
