@@ -519,3 +519,33 @@ textarea.input { resize: vertical; min-height: 80px; }
 .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted); padding: 0 4px; line-height: 1; }
 .modal-close:hover { color: var(--text); }
 .modal-body { padding: 20px; overflow-y: auto; }
+
+.hidden { display: none !important; }
+
+.color-input-row { display: flex; align-items: center; gap: 8px; }
+.color-input-row input[type="color"] { width: 36px; height: 34px; padding: 2px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; background: var(--card); }
+.color-input-row .input { flex: 1; }
+
+.cell-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.cell-picker-option {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: border-color .1s, background .1s;
+}
+.cell-picker-option:hover { border-color: var(--green-400); background: var(--green-50); }
+.cell-picker-option.clear { background: var(--danger-bg); color: var(--danger); border-color: #f0c0ba; }
+.cell-picker-option.clear:hover { border-color: var(--danger); }
+.cell-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
