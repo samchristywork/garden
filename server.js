@@ -1,0 +1,18 @@
+const express = require("express");
+const path = require("path");
+
+const app = express();
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+app.use("/api/plants", require("./src/routes/plants"));
+app.use("/api/beds", require("./src/routes/beds"));
+app.use("/api/calendar", require("./src/routes/calendar"));
+app.use("/api/tasks", require("./src/routes/tasks"));
+app.use("/api/notes", require("./src/routes/notes"));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Garden Planner running at http://localhost:${PORT}`);
+});
