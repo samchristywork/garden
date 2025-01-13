@@ -746,7 +746,7 @@ function renderTasks() {
     info.innerHTML = `
       <div class="task-title${t.completed ? ' done' : ''}">${escHtml(t.title)}</div>
       <div class="task-meta">
-        <span class="badge badge-${t.type.replace('-','')}">${t.type}</span>
+        <span class="badge badge-${t.type.replaceAll('-','')}">${t.type}</span>
         <span class="due-date ${dueCls}">${dueTxt}</span>
         ${t.plant_name ? `<span class="note-tag">${escHtml(t.plant_name)}</span>` : ''}
         ${t.bed_name   ? `<span class="note-tag">${escHtml(t.bed_name)}</span>`   : ''}
