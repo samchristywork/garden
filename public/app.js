@@ -946,12 +946,9 @@ function noteFormHtml(n) {
       <label>Title *</label>
       <input class="input" name="title" value="${escHtml(n?.title || '')}" required>
     </div>
-    <div class="form-row-2">
-      <div class="form-row">
-        <label>Date</label>
-        <input class="input" type="date" name="entry_date" value="${n?.entry_date || today()}" required>
-      </div>
-      <div class="form-row"></div>
+    <div class="form-row">
+      <label>Date</label>
+      <input class="input" type="date" name="entry_date" value="${n?.entry_date || today()}" required>
     </div>
     <div class="form-row-2">
       <div class="form-row">
