@@ -166,6 +166,9 @@ async function loadPlants() {
   renderPlants();
 }
 
+async function refreshPlantsCache() { allPlants = await api('GET', '/api/plants'); }
+async function refreshBedsCache() { allBeds = await api('GET', '/api/beds'); }
+
 function renderPlants() {
   const search = get('plant-search').value.toLowerCase();
   const typeFilter = get('plant-type-filter').value;
@@ -284,7 +287,7 @@ function showPlantForm(plant) {
         await api('POST', '/api/plants', data);
       }
       Modal.close();
-      await loadPlants();
+      await Promise.all([loadPlants(), refreshBedsCache()]);
     } catch (e) { alert(e.message); }
   });
 
@@ -302,7 +305,7 @@ function showPlantForm(plant) {
     if (!confirm(`Delete "${plant.name}"? This will remove it from all bed layouts.`)) return;
     await api('DELETE', `/api/plants/${plant.id}`);
     Modal.close();
-    await loadPlants();
+    await Promise.all([loadPlants(), refreshBedsCache()]);
   };
 }
 
@@ -478,7 +481,7 @@ get('btn-add-bed').addEventListener('click', () => {
     try {
       await api('POST', '/api/beds', data);
       Modal.close();
-      await loadBeds();
+      await Promise.all([loadBeds(), refreshPlantsCache()]);
     } catch (e) { alert(e.message); }
   });
   const cancelBtn = get('btn-cancel-bed');
@@ -497,7 +500,7 @@ get('btn-edit-bed').addEventListener('click', async () => {
     try {
       await api('PUT', `/api/beds/${currentBedId}`, data);
       Modal.close();
-      await openBedDetail(currentBedId);
+      await Promise.all([openBedDetail(currentBedId), refreshPlantsCache()]);
     } catch (e) { alert(e.message); }
   });
   const cancelBtn = get('btn-cancel-bed');
@@ -509,7 +512,7 @@ get('btn-delete-bed').addEventListener('click', async () => {
   if (!confirm(`Delete "${bed?.name}"? This cannot be undone.`)) return;
   await api('DELETE', `/api/beds/${currentBedId}`);
   showBedsListView();
-  await loadBeds();
+  await Promise.all([loadBeds(), refreshPlantsCache()]);
 });
 
 let calYear  = new Date().getFullYear();
