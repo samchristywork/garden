@@ -571,7 +571,15 @@ function renderCalendar() {
       dayEl.appendChild(evEl);
     });
     if (evs.length > 3) {
-      dayEl.appendChild(el('div', 'cal-event', `+${evs.length - 3} more`));
+      const moreEl = el('div', 'cal-event', `+${evs.length - 3} more`);
+      moreEl.onclick = (e) => {
+        e.stopPropagation();
+        const rows = evs.map(ev =>
+          `<div class="cal-event" style="background:${eventTypeColor(ev.type)};margin-bottom:4px">${escHtml(ev.title)}</div>`
+        ).join('');
+        Modal.show(dateStr, rows);
+      };
+      dayEl.appendChild(moreEl);
     }
 
     dayEl.addEventListener('click', () => showEventForm(null, dateStr));
