@@ -109,7 +109,12 @@ async function loadDashboard() {
   // Upcoming tasks
   const tasksEl = get('dashboard-tasks');
   tasksEl.innerHTML = '';
-  const upTasks = pending.filter(t => !t.due_date || t.due_date >= today()).slice(0, 5);
+  const upTasks = pending.sort((a, b) => {
+    if (!a.due_date && !b.due_date) return 0;
+    if (!a.due_date) return 1;
+    if (!b.due_date) return -1;
+    return a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0;
+  }).slice(0, 5);
   if (!upTasks.length) {
     tasksEl.innerHTML = '<div class="panel-empty">No pending tasks</div>';
   } else {
