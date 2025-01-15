@@ -137,6 +137,15 @@
           <button class="btn btn-primary" id="btn-add-note">+ New Entry</button>
         </div>
         <div id="journal-list-view">
+          <div class="search-bar">
+            <input type="text" id="journal-search" placeholder="Search entries..." class="input">
+            <select id="journal-plant-filter" class="input select">
+              <option value="">All plants</option>
+            </select>
+            <select id="journal-bed-filter" class="input select">
+              <option value="">All beds</option>
+            </select>
+          </div>
           <div id="notes-list" class="notes-list"></div>
         </div>
         <div id="journal-entry-view" class="hidden">

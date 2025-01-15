@@ -877,8 +877,27 @@ let currentNoteId = null;
 
 async function loadNotes() {
   allNotes = await api('GET', '/api/notes');
+  populateNoteFilters();
   showNoteListView();
   renderNotes();
+}
+
+function populateNoteFilters() {
+  const plantSel = get('journal-plant-filter');
+  const bedSel   = get('journal-bed-filter');
+  const prevPlant = plantSel.value;
+  const prevBed   = bedSel.value;
+
+  const plants = [...new Map(allNotes.filter(n => n.plant_id).map(n => [n.plant_id, n.plant_name])).entries()];
+  const beds   = [...new Map(allNotes.filter(n => n.bed_id).map(n => [n.bed_id, n.bed_name])).entries()];
+
+  plantSel.innerHTML = '<option value="">All plants</option>' +
+    plants.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+  bedSel.innerHTML = '<option value="">All beds</option>' +
+    beds.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+
+  plantSel.value = prevPlant;
+  bedSel.value   = prevBed;
 }
 
 function showNoteListView() {
@@ -889,11 +908,20 @@ function showNoteListView() {
 function renderNotes() {
   const list = get('notes-list');
   list.innerHTML = '';
-  if (!allNotes.length) {
-    list.innerHTML = '<div class="notes-empty">No journal entries yet. Record your first observation!</div>';
+  const search      = get('journal-search').value.toLowerCase();
+  const plantFilter = get('journal-plant-filter').value;
+  const bedFilter   = get('journal-bed-filter').value;
+
+  let filtered = allNotes;
+  if (search)      filtered = filtered.filter(n => n.title.toLowerCase().includes(search) || (n.content || '').toLowerCase().includes(search));
+  if (plantFilter) filtered = filtered.filter(n => String(n.plant_id) === plantFilter);
+  if (bedFilter)   filtered = filtered.filter(n => String(n.bed_id) === bedFilter);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="notes-empty">${allNotes.length ? 'No entries match your search.' : 'No journal entries yet. Record your first observation!'}</div>`;
     return;
   }
-  allNotes.forEach(n => {
+  filtered.forEach(n => {
     const card = el('div', 'note-card');
     const preview = (n.content || '').replace(/\n/g, ' ').slice(0, 140);
     const tags = [n.plant_name, n.bed_name].filter(Boolean);
@@ -926,6 +954,10 @@ async function openNote(noteId) {
 get('btn-back-journal').addEventListener('click', () => {
   showNoteListView();
 });
+
+get('journal-search').addEventListener('input', renderNotes);
+get('journal-plant-filter').addEventListener('change', renderNotes);
+get('journal-bed-filter').addEventListener('change', renderNotes);
 
 get('btn-add-note').addEventListener('click', () => showNoteForm(null));
 
