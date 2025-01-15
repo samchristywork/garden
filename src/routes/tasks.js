@@ -102,7 +102,8 @@ router.patch("/:id/complete", (req, res) => {
 });
 
 router.delete("/:id", (req, res) => {
-  db.prepare("DELETE FROM tasks WHERE id = ?").run(req.params.id);
+  const info = db.prepare("DELETE FROM tasks WHERE id = ?").run(req.params.id);
+  if (info.changes === 0) return res.status(404).json({ error: "Not found" });
   res.status(204).end();
 });
 
