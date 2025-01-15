@@ -335,10 +335,17 @@ function renderBeds() {
     // Mini preview grid (up to 6x4)
     const previewRows = Math.min(b.rows, 4);
     const previewCols = Math.min(b.cols, 6);
+    const cellMap = {};
+    (b.cells || []).forEach(c => { cellMap[`${c.row_num},${c.col_num}`] = c.plant_color; });
     let previewHtml = `<div class="bed-card-preview" style="--cols:${previewCols}">`;
     for (let r = 0; r < previewRows; r++) {
       previewHtml += '<div class="bed-preview-row">';
-      for (let c = 0; c < previewCols; c++) previewHtml += '<div class="bed-preview-cell"></div>';
+      for (let c = 0; c < previewCols; c++) {
+        const color = cellMap[`${r},${c}`];
+        const style = color ? ` style="background:${escHtml(color)}"` : '';
+        const cls = color ? 'bed-preview-cell occupied' : 'bed-preview-cell';
+        previewHtml += `<div class="${cls}"${style}></div>`;
+      }
       previewHtml += '</div>';
     }
     previewHtml += '</div>';

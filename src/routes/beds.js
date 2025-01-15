@@ -7,7 +7,17 @@ const i = (v) => (v === undefined || v === "" || v === null ? null : Number(v));
 
 router.get("/", (req, res) => {
   const beds = db.prepare("SELECT * FROM garden_beds ORDER BY name").all();
-  res.json(beds);
+  const cellsByBed = db.prepare(`
+    SELECT bc.bed_id, bc.row_num, bc.col_num, p.color AS plant_color
+    FROM bed_cells bc
+    JOIN plants p ON p.id = bc.plant_id
+  `).all();
+  const cellMap = {};
+  for (const c of cellsByBed) {
+    if (!cellMap[c.bed_id]) cellMap[c.bed_id] = [];
+    cellMap[c.bed_id].push({ row_num: c.row_num, col_num: c.col_num, plant_color: c.plant_color });
+  }
+  res.json(beds.map(b => ({ ...b, cells: cellMap[b.id] || [] })));
 });
 
 router.get("/:id", (req, res) => {
