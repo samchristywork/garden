@@ -779,7 +779,8 @@ function renderTasks() {
         <span class="due-date ${dueCls}">${dueTxt}</span>
         ${t.plant_name ? `<span class="note-tag">${escHtml(t.plant_name)}</span>` : ''}
         ${t.bed_name   ? `<span class="note-tag">${escHtml(t.bed_name)}</span>`   : ''}
-      </div>`;
+      </div>
+      ${t.notes ? `<div class="task-notes">${escHtml(t.notes)}</div>` : ''}`;
 
     const actions = el('div', 'task-actions');
     const editBtn = el('button', 'btn btn-ghost btn-sm', 'Edit');
