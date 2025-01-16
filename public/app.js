@@ -644,6 +644,12 @@ get('cal-next').onclick = () => {
   if (calMonth > 11) { calMonth = 0; calYear++; }
   renderCalendar();
 };
+get('cal-today').onclick = () => {
+  const now = new Date();
+  calYear  = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+};
 
 get('btn-add-event').addEventListener('click', () => showEventForm(null, today()));
 
