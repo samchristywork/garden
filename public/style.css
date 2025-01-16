@@ -302,6 +302,7 @@ textarea.input { resize: vertical; min-height: 80px; }
 .bed-legend h3 { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 10px; }
 .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
 .legend-swatch { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+.bed-coverage { font-size: 13px; color: var(--text-muted); margin-top: 14px; }
 .bed-notes { font-size: 13px; color: var(--text-muted); margin-top: 16px; padding: 12px; background: var(--green-50); border-radius: var(--radius); border: 1px solid var(--border); }
 
 .calendar-nav {

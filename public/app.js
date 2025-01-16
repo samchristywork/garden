@@ -414,10 +414,14 @@ function renderBedDetail(bed) {
 
   const notesHtml = bed.notes ? `<div class="bed-notes">${escHtml(bed.notes)}</div>` : '';
 
+  const totalCells = bed.rows * bed.cols;
+  const plantedCells = (bed.cells || []).filter(c => c.plant_id).length;
+  const coverageHtml = `<div class="bed-coverage">${plantedCells} of ${totalCells} cells planted</div>`;
+
   body.innerHTML = `<div class="bed-detail-body">
     <div class="bed-grid-wrap">${tableHtml}</div>
     ${legendHtml}
-  </div>${notesHtml}`;
+  </div>${coverageHtml}${notesHtml}`;
 
   // Cell click
   qsa('.bed-cell', body).forEach(cell => {
