@@ -64,7 +64,7 @@ function navigate(section) {
   qsa('.nav-item').forEach(n => n.classList.remove('active'));
   get(`section-${section}`).classList.remove('hidden');
   qs(`.nav-item[data-section="${section}"]`).classList.add('active');
-  loaders[section]();
+  return loaders[section]();
 }
 
 qsa('.nav-item').forEach(item => {
@@ -122,7 +122,7 @@ async function loadDashboard() {
       const item = el('div', 'panel-item');
       item.innerHTML = `<div class="panel-item-title">${escHtml(t.title)}</div>
         <div class="panel-item-meta">${t.due_date ? fmtDate(t.due_date) : 'No due date'} &bull; ${t.type}</div>`;
-      item.onclick = () => navigate('tasks');
+      item.onclick = () => { navigate('tasks'); showTaskForm(t); };
       tasksEl.appendChild(item);
     });
   }
@@ -137,7 +137,7 @@ async function loadDashboard() {
       const item = el('div', 'panel-item');
       item.innerHTML = `<div class="panel-item-title">${escHtml(ev.title)}</div>
         <div class="panel-item-meta">${fmtDate(ev.event_date)} &bull; ${ev.type}</div>`;
-      item.onclick = () => navigate('calendar');
+      item.onclick = () => { navigate('calendar'); showEventForm(ev); };
       eventsEl.appendChild(item);
     });
   }
@@ -153,7 +153,7 @@ async function loadDashboard() {
       const item = el('div', 'panel-item');
       item.innerHTML = `<div class="panel-item-title">${escHtml(n.title)}</div>
         <div class="panel-item-meta">${fmtDate(n.entry_date)}</div>`;
-      item.onclick = () => { navigate('journal'); };
+      item.onclick = async () => { await navigate('journal'); openNote(n.id); };
       journalEl.appendChild(item);
     });
   }
