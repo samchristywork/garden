@@ -531,7 +531,7 @@ let calMonth = new Date().getMonth(); // 0-based
 let allEvents = [];
 
 async function loadCalendar() {
-  allEvents = await api('GET', '/api/calendar');
+  allEvents = await api('GET', `/api/calendar?year=${calYear}&month=${calMonth + 1}`);
   renderCalendar();
 }
 
@@ -638,21 +638,21 @@ function renderCalendar() {
   });
 }
 
-get('cal-prev').onclick = () => {
+get('cal-prev').onclick = async () => {
   calMonth--;
   if (calMonth < 0) { calMonth = 11; calYear--; }
-  renderCalendar();
+  await loadCalendar();
 };
-get('cal-next').onclick = () => {
+get('cal-next').onclick = async () => {
   calMonth++;
   if (calMonth > 11) { calMonth = 0; calYear++; }
-  renderCalendar();
+  await loadCalendar();
 };
-get('cal-today').onclick = () => {
+get('cal-today').onclick = async () => {
   const now = new Date();
   calYear  = now.getFullYear();
   calMonth = now.getMonth();
-  renderCalendar();
+  await loadCalendar();
 };
 
 get('btn-add-event').addEventListener('click', () => showEventForm(null, today()));
