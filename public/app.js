@@ -208,6 +208,7 @@ function renderPlants() {
 get('plant-search').addEventListener('input', renderPlants);
 get('plant-type-filter').addEventListener('change', renderPlants);
 get('btn-add-plant').addEventListener('click', () => showPlantForm(null));
+get('btn-export-plants').addEventListener('click', () => showExportModal('Export Plants', '/api/plants', 'plants'));
 
 function plantFormHtml(p) {
   return `<form id="plant-form">
@@ -818,6 +819,7 @@ qsa('.filter-tab').forEach(tab => {
 });
 
 get('btn-add-task').addEventListener('click', () => showTaskForm(null));
+get('btn-export-tasks').addEventListener('click', () => showExportModal('Export Tasks', '/api/tasks', 'tasks'));
 
 function taskFormHtml(t) {
   const plants = allPlants.map(p => `<option value="${p.id}" ${t?.plant_id===p.id?'selected':''}>${escHtml(p.name)}</option>`).join('');
@@ -978,6 +980,7 @@ get('journal-plant-filter').addEventListener('change', renderNotes);
 get('journal-bed-filter').addEventListener('change', renderNotes);
 
 get('btn-add-note').addEventListener('click', () => showNoteForm(null));
+get('btn-export-notes').addEventListener('click', () => showExportModal('Export Journal', '/api/notes', 'journal'));
 
 get('btn-edit-note').addEventListener('click', async () => {
   const note = await api('GET', `/api/notes/${currentNoteId}`);
@@ -1062,6 +1065,44 @@ function formData(form) {
     }
   }
   return obj;
+}
+
+function downloadFile(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function toCSV(rows) {
+  if (!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const esc = v => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers.join(','), ...rows.map(r => headers.map(h => esc(r[h])).join(','))].join('\n');
+}
+
+function showExportModal(title, endpoint, filename) {
+  Modal.show(title, `
+    <div style="display:flex;gap:.75rem;padding:.5rem 0">
+      <button class="btn btn-primary" id="exp-json">Download JSON</button>
+      <button class="btn btn-secondary" id="exp-csv">Download CSV</button>
+    </div>
+  `);
+  get('exp-json').onclick = async () => {
+    const data = await api('GET', endpoint);
+    downloadFile(JSON.stringify(data, null, 2), filename + '.json', 'application/json');
+    Modal.close();
+  };
+  get('exp-csv').onclick = async () => {
+    const data = await api('GET', endpoint);
+    downloadFile(toCSV(data), filename + '.csv', 'text/csv');
+    Modal.close();
+  };
 }
 
 function escHtml(str) {
