@@ -43,11 +43,14 @@ router.get("/:id", (req, res) => {
 router.post("/", (req, res) => {
   const { name, rows, cols, notes } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
+  const parsedRows = i(rows) ?? 4;
+  const parsedCols = i(cols) ?? 6;
+  if (parsedRows > 50 || parsedCols > 50) return res.status(400).json({ error: "rows and cols must be 50 or less" });
   const result = db
     .prepare(
       "INSERT INTO garden_beds (name, rows, cols, notes) VALUES (?, ?, ?, ?)",
     )
-    .run(name, i(rows) ?? 4, i(cols) ?? 6, n(notes));
+    .run(name, parsedRows, parsedCols, n(notes));
   res
     .status(201)
     .json(
@@ -60,11 +63,14 @@ router.post("/", (req, res) => {
 router.put("/:id", (req, res) => {
   const { name, rows, cols, notes } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
+  const parsedRows = i(rows) ?? 4;
+  const parsedCols = i(cols) ?? 6;
+  if (parsedRows > 50 || parsedCols > 50) return res.status(400).json({ error: "rows and cols must be 50 or less" });
   const info = db
     .prepare(
       "UPDATE garden_beds SET name=?, rows=?, cols=?, notes=? WHERE id=?",
     )
-    .run(name, i(rows) ?? 4, i(cols) ?? 6, n(notes), req.params.id);
+    .run(name, parsedRows, parsedCols, n(notes), req.params.id);
   if (info.changes === 0) return res.status(404).json({ error: "Not found" });
   res.json(
     db.prepare("SELECT * FROM garden_beds WHERE id = ?").get(req.params.id),
