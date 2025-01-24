@@ -638,7 +638,7 @@ function renderCalendar() {
   monthEvents.forEach(ev => {
     const item = el('div', 'event-item');
     item.innerHTML = `
-      <div class="event-date-badge">${fmtDate(ev.event_date)}</div>
+      <div class="event-date-badge">${fmtDate(ev.event_date)}${ev.event_time ? `<div class="event-time">${ev.event_time}</div>` : ''}</div>
       <div class="event-info">
         <div class="event-title">${escHtml(ev.title)}</div>
         <div class="event-meta">${ev.type}${ev.plant_name ? ` &bull; ${escHtml(ev.plant_name)}` : ''}${ev.bed_name ? ` &bull; ${escHtml(ev.bed_name)}` : ''}</div>
@@ -690,12 +690,16 @@ function eventFormHtml(ev, defaultDate) {
         <input class="input" type="date" name="event_date" value="${ev?.event_date || defaultDate || today()}" required>
       </div>
       <div class="form-row">
-        <label>Type</label>
-        <select class="input" name="type">
-          ${['plant','transplant','harvest','fertilize','prune','water','other'].map(t =>
-            `<option value="${t}" ${ev?.type===t?'selected':''}>${t}</option>`).join('')}
-        </select>
+        <label>Time</label>
+        <input class="input" type="time" name="event_time" value="${ev?.event_time || ''}">
       </div>
+    </div>
+    <div class="form-row">
+      <label>Type</label>
+      <select class="input" name="type">
+        ${['plant','transplant','harvest','fertilize','prune','water','other'].map(t =>
+          `<option value="${t}" ${ev?.type===t?'selected':''}>${t}</option>`).join('')}
+      </select>
     </div>
     <div class="form-row-2">
       <div class="form-row">

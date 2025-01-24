@@ -17,28 +17,29 @@ router.get("/", (req, res) => {
     return res.json(
       db
         .prepare(
-          `${WITH_JOINS} WHERE strftime('%Y-%m', e.event_date) = ? ORDER BY e.event_date`,
+          `${WITH_JOINS} WHERE strftime('%Y-%m', e.event_date) = ? ORDER BY e.event_date, e.event_time, e.id`,
         )
         .all(ym),
     );
   }
-  res.json(db.prepare(`${WITH_JOINS} ORDER BY e.event_date`).all());
+  res.json(db.prepare(`${WITH_JOINS} ORDER BY e.event_date, e.event_time, e.id`).all());
 });
 
 router.post("/", (req, res) => {
-  const { title, event_date, type, plant_id, bed_id, notes } = req.body;
+  const { title, event_date, event_time, type, plant_id, bed_id, notes } = req.body;
   if (!title || !event_date)
     return res.status(400).json({ error: "title and event_date are required" });
   const result = db
     .prepare(
       `
-    INSERT INTO calendar_events (title, event_date, type, plant_id, bed_id, notes)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO calendar_events (title, event_date, event_time, type, plant_id, bed_id, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `,
     )
     .run(
       title,
       event_date,
+      n(event_time),
       n(type) ?? "other",
       n(plant_id),
       n(bed_id),
@@ -52,19 +53,20 @@ router.post("/", (req, res) => {
 });
 
 router.put("/:id", (req, res) => {
-  const { title, event_date, type, plant_id, bed_id, notes } = req.body;
+  const { title, event_date, event_time, type, plant_id, bed_id, notes } = req.body;
   if (!title || !event_date)
     return res.status(400).json({ error: "title and event_date are required" });
   const info = db
     .prepare(
       `
-    UPDATE calendar_events SET title=?, event_date=?, type=?, plant_id=?, bed_id=?, notes=?
+    UPDATE calendar_events SET title=?, event_date=?, event_time=?, type=?, plant_id=?, bed_id=?, notes=?
     WHERE id=?
   `,
     )
     .run(
       title,
       event_date,
+      n(event_time),
       n(type) ?? "other",
       n(plant_id),
       n(bed_id),

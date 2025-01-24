@@ -76,4 +76,8 @@ db.exec(`
   );
 `);
 
+try {
+  db.exec(`ALTER TABLE calendar_events ADD COLUMN event_time TEXT`);
+} catch (e) { /* column already exists */ }
+
 module.exports = db;
