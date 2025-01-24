@@ -303,7 +303,16 @@ function showPlantForm(plant) {
 
   const delBtn = get('btn-del-plant');
   if (delBtn) delBtn.onclick = async () => {
-    if (!confirm(`Delete "${plant.name}"? This will remove it from all bed layouts.`)) return;
+    const links = await api('GET', `/api/plants/${plant.id}/links`);
+    const parts = [];
+    if (links.bed_cells > 0) parts.push(`${links.bed_cells} bed cell${links.bed_cells !== 1 ? 's' : ''}`);
+    if (links.calendar_events > 0) parts.push(`${links.calendar_events} calendar event${links.calendar_events !== 1 ? 's' : ''}`);
+    if (links.tasks > 0) parts.push(`${links.tasks} task${links.tasks !== 1 ? 's' : ''}`);
+    if (links.journal_entries > 0) parts.push(`${links.journal_entries} journal entr${links.journal_entries !== 1 ? 'ies' : 'y'}`);
+    const linkMsg = parts.length > 0
+      ? `\n\nThis will unlink it from: ${parts.join(', ')}.`
+      : '';
+    if (!confirm(`Delete "${plant.name}"?${linkMsg}`)) return;
     await api('DELETE', `/api/plants/${plant.id}`);
     Modal.close();
     await Promise.all([loadPlants(), refreshBedsCache()]);

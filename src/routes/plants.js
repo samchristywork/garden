@@ -100,6 +100,16 @@ router.put("/:id", (req, res) => {
   res.json(db.prepare("SELECT * FROM plants WHERE id = ?").get(req.params.id));
 });
 
+router.get("/:id/links", (req, res) => {
+  const plant = db.prepare("SELECT id FROM plants WHERE id = ?").get(req.params.id);
+  if (!plant) return res.status(404).json({ error: "Not found" });
+  const bed_cells = db.prepare("SELECT COUNT(*) AS n FROM bed_cells WHERE plant_id = ?").get(req.params.id).n;
+  const calendar_events = db.prepare("SELECT COUNT(*) AS n FROM calendar_events WHERE plant_id = ?").get(req.params.id).n;
+  const tasks = db.prepare("SELECT COUNT(*) AS n FROM tasks WHERE plant_id = ?").get(req.params.id).n;
+  const journal_entries = db.prepare("SELECT COUNT(*) AS n FROM journal_entries WHERE plant_id = ?").get(req.params.id).n;
+  res.json({ bed_cells, calendar_events, tasks, journal_entries });
+});
+
 router.delete("/:id", (req, res) => {
   const info = db.prepare("DELETE FROM plants WHERE id = ?").run(req.params.id);
   if (info.changes === 0) return res.status(404).json({ error: "Not found" });
