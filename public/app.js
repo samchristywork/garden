@@ -452,6 +452,15 @@ async function assignPlantToCell(bedId, row, col, currentPlantId) {
     opt.addEventListener('click', async () => {
       const rawId = opt.dataset.id;
       const plantId = rawId === '__clear' ? null : +rawId;
+
+      if (currentPlantId && plantId !== currentPlantId) {
+        const currentPlant = allPlants.find(p => p.id === currentPlantId);
+        const currentName = currentPlant ? currentPlant.name : 'the current plant';
+        const newPlant = plantId ? allPlants.find(p => p.id === plantId) : null;
+        const action = newPlant ? `Replace with ${newPlant.name}?` : 'Clear this cell?';
+        if (!confirm(`This cell contains ${currentName}. ${action}`)) return;
+      }
+
       await api('PUT', `/api/beds/${bedId}/cells/${row}/${col}`, { plant_id: plantId });
       Modal.close();
       const bed = await api('GET', `/api/beds/${bedId}`);
