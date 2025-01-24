@@ -1061,7 +1061,9 @@ function formData(form) {
     obj[k] = v === '' ? null : v;
     // Coerce numeric fields
     if (['spacing_inches','days_to_maturity','rows','cols','plant_id','bed_id'].includes(k) && v !== '') {
-      obj[k] = v === '' ? null : Number(v);
+      const n = ['spacing_inches','days_to_maturity'].includes(k) ? parseFloat(v) : parseInt(v, 10);
+      if (!isFinite(n)) throw new Error(`Invalid value for ${k}: ${v}`);
+      obj[k] = n;
     }
   }
   return obj;
