@@ -550,4 +550,30 @@ textarea.input { resize: vertical; min-height: 80px; }
 .cell-picker-option:hover { border-color: var(--green-400); background: var(--green-50); }
 .cell-picker-option.clear { background: var(--danger-bg); color: var(--danger); border-color: #f0c0ba; }
 .cell-picker-option.clear:hover { border-color: var(--danger); }
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  pointer-events: none;
+}
+.toast {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid #f0c0ba;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity .3s;
+  max-width: 360px;
+}
+.toast.fade-out { opacity: 0; }
 .cell-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }

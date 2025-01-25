@@ -21,6 +21,16 @@ function el(tag, cls, html) {
   return e;
 }
 
+function showToast(msg) {
+  const container = get('toast-container');
+  const toast = el('div', 'toast', msg);
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    toast.addEventListener('transitionend', () => toast.remove());
+  }, 4000);
+}
+
 function fmtDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
@@ -289,7 +299,7 @@ function showPlantForm(plant) {
       }
       Modal.close();
       await Promise.all([loadPlants(), refreshBedsCache()]);
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message); }
   });
 
   // Sync color picker <-> text input
@@ -512,7 +522,7 @@ get('btn-add-bed').addEventListener('click', () => {
       await api('POST', '/api/beds', data);
       Modal.close();
       await Promise.all([loadBeds(), refreshPlantsCache()]);
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message); }
   });
   const cancelBtn = get('btn-cancel-bed');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
@@ -531,7 +541,7 @@ get('btn-edit-bed').addEventListener('click', async () => {
       await api('PUT', `/api/beds/${currentBedId}`, data);
       Modal.close();
       await Promise.all([openBedDetail(currentBedId), refreshPlantsCache()]);
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message); }
   });
   const cancelBtn = get('btn-cancel-bed');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
@@ -738,7 +748,7 @@ function showEventForm(ev, defaultDate) {
       }
       Modal.close();
       await loadCalendar();
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message); }
   });
   const cancelBtn = get('btn-cancel-event');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
@@ -901,7 +911,7 @@ function showTaskForm(task) {
       }
       Modal.close();
       await loadTasks();
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message); }
   });
   const cancelBtn = get('btn-cancel-task');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
@@ -1068,7 +1078,7 @@ function showNoteForm(note) {
         await loadNotes();
         await openNote(created.id);
       }
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message); }
   });
   const cancelBtn = get('btn-cancel-note');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
