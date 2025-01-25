@@ -651,7 +651,7 @@ function renderCalendar() {
       <div class="event-date-badge">${fmtDate(ev.event_date)}${ev.event_time ? `<div class="event-time">${ev.event_time}</div>` : ''}</div>
       <div class="event-info">
         <div class="event-title">${escHtml(ev.title)}</div>
-        <div class="event-meta">${ev.type}${ev.plant_name ? ` &bull; ${escHtml(ev.plant_name)}` : ''}${ev.bed_name ? ` &bull; ${escHtml(ev.bed_name)}` : ''}</div>
+        <div class="event-meta">${ev.type}${ev.recurrence_rule ? ` &#x21bb; ${fmtRecur(ev.recurrence_rule)}` : ''}${ev.plant_name ? ` &bull; ${escHtml(ev.plant_name)}` : ''}${ev.bed_name ? ` &bull; ${escHtml(ev.bed_name)}` : ''}</div>
       </div>
       <div class="event-actions">
         <button class="btn btn-ghost btn-sm btn-edit-event">Edit</button>
@@ -729,6 +729,7 @@ function eventFormHtml(ev, defaultDate) {
       <label>Notes</label>
       <textarea class="input" name="notes">${escHtml(ev?.notes || '')}</textarea>
     </div>
+    ${recurrenceFormHtml(ev?.recurrence_rule || '', 'ev')}
     <div class="form-actions">
       ${ev ? `<button type="button" class="btn btn-danger btn-sm" id="btn-del-event">Delete</button>` : ''}
       <button type="button" class="btn btn-ghost" id="btn-cancel-event">Cancel</button>
@@ -740,6 +741,7 @@ function eventFormHtml(ev, defaultDate) {
 function showEventForm(ev, defaultDate) {
   Modal.show(ev ? 'Edit Event' : 'New Event', eventFormHtml(ev, defaultDate), async (form) => {
     const data = formData(form);
+    resolveRecurrenceRule(data);
     try {
       if (ev) {
         await api('PUT', `/api/calendar/${ev.id}`, data);
@@ -750,6 +752,7 @@ function showEventForm(ev, defaultDate) {
       await loadCalendar();
     } catch (e) { showToast(e.message); }
   });
+  bindRecurrenceSelect('ev-recur-select', 'ev-recur-interval');
   const cancelBtn = get('btn-cancel-event');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
   const delBtn = get('btn-del-event');
@@ -759,6 +762,51 @@ function showEventForm(ev, defaultDate) {
     Modal.close();
     await loadCalendar();
   };
+}
+
+function fmtRecur(rule) {
+  if (rule === 'daily')   return 'daily';
+  if (rule === 'weekly')  return 'weekly';
+  if (rule === 'monthly') return 'monthly';
+  return `every ${rule}d`;
+}
+
+function recurrenceFormHtml(rule, idPrefix) {
+  const named = ['daily', 'weekly', 'monthly'];
+  const selectVal = named.includes(rule) ? rule : (rule ? '_custom' : '');
+  const intervalVal = (rule && !named.includes(rule)) ? rule : '7';
+  return `
+    <div class="form-row">
+      <label>Recurrence</label>
+      <select class="input" name="recurrence_rule" id="${idPrefix}-recur-select">
+        <option value="">None</option>
+        <option value="daily" ${selectVal==='daily'?'selected':''}>Daily</option>
+        <option value="weekly" ${selectVal==='weekly'?'selected':''}>Weekly</option>
+        <option value="monthly" ${selectVal==='monthly'?'selected':''}>Monthly</option>
+        <option value="_custom" ${selectVal==='_custom'?'selected':''}>Every N days</option>
+      </select>
+    </div>
+    <div class="form-row" id="${idPrefix}-recur-interval" style="display:${selectVal==='_custom'?'':'none'}">
+      <label>Interval (days)</label>
+      <input class="input" type="number" name="recurrence_interval" min="1" max="365" value="${escHtml(String(intervalVal))}">
+    </div>`;
+}
+
+function bindRecurrenceSelect(selectId, intervalRowId) {
+  const sel = get(selectId);
+  const row = get(intervalRowId);
+  if (sel && row) {
+    sel.addEventListener('change', () => {
+      row.style.display = sel.value === '_custom' ? '' : 'none';
+    });
+  }
+}
+
+function resolveRecurrenceRule(data) {
+  if (data.recurrence_rule === '_custom') {
+    data.recurrence_rule = data.recurrence_interval || null;
+  }
+  delete data.recurrence_interval;
 }
 
 function eventTypeColor(type) {
@@ -814,6 +862,7 @@ function renderTasks() {
       <div class="task-meta">
         <span class="badge badge-${t.type.replaceAll('-','')}">${t.type}</span>
         <span class="due-date ${dueCls}">${dueTxt}</span>
+        ${t.recurrence_rule ? `<span class="badge badge-recur">&#x21bb; ${fmtRecur(t.recurrence_rule)}</span>` : ''}
         ${t.plant_name ? `<span class="note-tag">${escHtml(t.plant_name)}</span>` : ''}
         ${t.bed_name   ? `<span class="note-tag">${escHtml(t.bed_name)}</span>`   : ''}
       </div>
@@ -892,6 +941,7 @@ function taskFormHtml(t) {
       <label>Notes</label>
       <textarea class="input" name="notes">${escHtml(t?.notes || '')}</textarea>
     </div>
+    ${recurrenceFormHtml(t?.recurrence_rule || '', 'task')}
     <div class="form-actions">
       ${t ? `<button type="button" class="btn btn-danger btn-sm" id="btn-del-task">Delete</button>` : ''}
       <button type="button" class="btn btn-ghost" id="btn-cancel-task">Cancel</button>
@@ -903,6 +953,7 @@ function taskFormHtml(t) {
 function showTaskForm(task) {
   Modal.show(task ? 'Edit Task' : 'New Task', taskFormHtml(task), async (form) => {
     const data = formData(form);
+    resolveRecurrenceRule(data);
     try {
       if (task) {
         await api('PUT', `/api/tasks/${task.id}`, data);
@@ -913,6 +964,7 @@ function showTaskForm(task) {
       await loadTasks();
     } catch (e) { showToast(e.message); }
   });
+  bindRecurrenceSelect('task-recur-select', 'task-recur-interval');
   const cancelBtn = get('btn-cancel-task');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
   const delBtn = get('btn-del-task');

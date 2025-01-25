@@ -80,4 +80,12 @@ try {
   db.exec(`ALTER TABLE calendar_events ADD COLUMN event_time TEXT`);
 } catch (e) { /* column already exists */ }
 
+try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT`);
+} catch (e) { /* column already exists */ }
+
+try {
+  db.exec(`ALTER TABLE calendar_events ADD COLUMN recurrence_rule TEXT`);
+} catch (e) { /* column already exists */ }
+
 module.exports = db;
