@@ -74,6 +74,7 @@ function navigate(section) {
   qsa('.nav-item').forEach(n => n.classList.remove('active'));
   get(`section-${section}`).classList.remove('hidden');
   qs(`.nav-item[data-section="${section}"]`).classList.add('active');
+  location.hash = section;
   return loaders[section]();
 }
 
@@ -1271,5 +1272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
     console.error('Failed to preload data:', e);
   }
-  navigate('dashboard');
+  const validSections = Object.keys(loaders);
+  const hash = location.hash.slice(1);
+  navigate(validSections.includes(hash) ? hash : 'dashboard');
 });
