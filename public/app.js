@@ -197,8 +197,11 @@ function renderPlants() {
 
   list.forEach(p => {
     const card = el('div', 'plant-card');
+    const topHtml = p.image_url
+      ? `<div class="plant-card-photo"><img src="${escHtml(p.image_url)}" alt="${escHtml(p.name)}"></div>`
+      : `<div class="plant-card-top" style="background:${escHtml(p.color)}"></div>`;
     card.innerHTML = `
-      <div class="plant-card-top" style="background:${escHtml(p.color)}"></div>
+      ${topHtml}
       <div class="plant-card-body">
         <div class="plant-card-name">${escHtml(p.name)}</div>
         ${p.variety ? `<div class="plant-card-variety">${escHtml(p.variety)}</div>` : ''}
@@ -280,6 +283,20 @@ function plantFormHtml(p) {
       <label>Notes</label>
       <textarea class="input" name="notes">${escHtml(p?.notes || '')}</textarea>
     </div>
+    <div class="form-row">
+      <label>Photo</label>
+      <div class="photo-upload-wrap">
+        ${p?.image_url ? `<img class="photo-preview" src="${escHtml(p.image_url)}" alt="Plant photo">` : '<div class="photo-preview photo-placeholder">No photo</div>'}
+        <div class="photo-actions">
+          <label class="btn btn-ghost btn-sm">
+            Choose Photo
+            <input type="file" id="plant-photo-input" accept="image/*" style="display:none">
+          </label>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-remove-photo"${!p?.image_url ? ' style="display:none"' : ''}>Remove</button>
+        </div>
+      </div>
+      <input type="hidden" name="image_url" value="${escHtml(p?.image_url || '')}">
+    </div>
     <div class="form-actions">
       ${p ? `<button type="button" class="btn btn-danger btn-sm" id="btn-del-plant">Delete</button>` : ''}
       <button type="button" class="btn btn-ghost" id="btn-cancel-plant">Cancel</button>
@@ -307,6 +324,47 @@ function showPlantForm(plant) {
   const colorText = qs('[name="color"]', get('modal-body'));
   picker.oninput = () => { colorText.value = picker.value; };
   colorText.oninput = () => { if (/^#[0-9a-fA-F]{6}$/.test(colorText.value)) picker.value = colorText.value; };
+
+  // Photo upload
+  const photoInput = get('plant-photo-input');
+  const removePhotoBtn = get('btn-remove-photo');
+  const imageUrlInput = qs('[name="image_url"]', get('modal-body'));
+  const previewWrap = qs('.photo-upload-wrap', get('modal-body'));
+
+  function updatePhotoPreview(src) {
+    const existing = qs('.photo-preview', previewWrap);
+    if (src) {
+      if (existing.tagName === 'IMG') {
+        existing.src = src;
+      } else {
+        const img = document.createElement('img');
+        img.className = 'photo-preview';
+        img.alt = 'Plant photo';
+        img.src = src;
+        existing.replaceWith(img);
+      }
+      removePhotoBtn.style.display = '';
+    } else {
+      if (existing.tagName === 'IMG') {
+        const ph = document.createElement('div');
+        ph.className = 'photo-preview photo-placeholder';
+        ph.textContent = 'No photo';
+        existing.replaceWith(ph);
+      }
+      removePhotoBtn.style.display = 'none';
+    }
+    imageUrlInput.value = src || '';
+  }
+
+  photoInput.addEventListener('change', () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { showToast('Photo must be under 10 MB'); photoInput.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = (e) => updatePhotoPreview(e.target.result);
+    reader.readAsDataURL(file);
+  });
+  removePhotoBtn.addEventListener('click', () => { photoInput.value = ''; updatePhotoPreview(null); });
 
   const cancelBtn = get('btn-cancel-plant');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
@@ -454,7 +512,9 @@ function renderBedDetail(bed) {
 async function assignPlantToCell(bedId, row, col, currentPlantId) {
   const options = allPlants.map(p =>
     `<div class="cell-picker-option ${currentPlantId === p.id ? 'selected' : ''}" data-id="${p.id}">
-      <div class="cell-swatch" style="background:${escHtml(p.color)}"></div>${escHtml(p.name)}
+      ${p.image_url
+        ? `<img class="cell-thumb" src="${escHtml(p.image_url)}" alt="">`
+        : `<div class="cell-swatch" style="background:${escHtml(p.color)}"></div>`}${escHtml(p.name)}
     </div>`
   ).join('');
 

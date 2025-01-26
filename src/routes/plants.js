@@ -30,14 +30,15 @@ router.post("/", (req, res) => {
     planting_depth,
     color,
     notes,
+    image_url,
   } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
   const result = db
     .prepare(
       `
     INSERT INTO plants (name, type, variety, sun_requirement, water_needs,
-      spacing_inches, days_to_maturity, planting_depth, color, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      spacing_inches, days_to_maturity, planting_depth, color, notes, image_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     )
     .run(
@@ -51,6 +52,7 @@ router.post("/", (req, res) => {
       n(planting_depth),
       n(color) ?? "#4a7c4e",
       n(notes),
+      n(image_url),
     );
   res
     .status(201)
@@ -73,13 +75,14 @@ router.put("/:id", (req, res) => {
     planting_depth,
     color,
     notes,
+    image_url,
   } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
   const info = db
     .prepare(
       `
     UPDATE plants SET name=?, type=?, variety=?, sun_requirement=?, water_needs=?,
-      spacing_inches=?, days_to_maturity=?, planting_depth=?, color=?, notes=?
+      spacing_inches=?, days_to_maturity=?, planting_depth=?, color=?, notes=?, image_url=?
     WHERE id=?
   `,
     )
@@ -94,6 +97,7 @@ router.put("/:id", (req, res) => {
       n(planting_depth),
       n(color) ?? "#4a7c4e",
       n(notes),
+      n(image_url),
       req.params.id,
     );
   if (info.changes === 0) return res.status(404).json({ error: "Not found" });
