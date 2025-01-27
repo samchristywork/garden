@@ -13,6 +13,9 @@
         <span class="logo-icon">&#127807;</span>
         <span class="logo-text">Garden Planner</span>
       </div>
+      <div class="sidebar-search">
+        <input type="text" id="global-search" class="sidebar-search-input" placeholder="&#128269; Search...">
+      </div>
       <ul class="nav-list">
         <li class="nav-item active" data-section="dashboard">
           <span class="nav-icon">&#9632;</span> Dashboard
@@ -39,6 +42,14 @@
     </nav>
 
     <main class="content">
+      <!-- Search Results -->
+      <section id="section-search" class="section hidden">
+        <div class="section-header">
+          <h1 id="search-heading">Search Results</h1>
+        </div>
+        <div id="search-results"></div>
+      </section>
+
       <!-- Dashboard -->
       <section id="section-dashboard" class="section">
         <div class="section-header">

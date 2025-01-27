@@ -79,7 +79,10 @@ function navigate(section) {
 }
 
 qsa('.nav-item').forEach(item => {
-  item.addEventListener('click', () => navigate(item.dataset.section));
+  item.addEventListener('click', () => {
+    get('global-search').value = '';
+    navigate(item.dataset.section);
+  });
 });
 
 const loaders = {
@@ -1416,6 +1419,67 @@ get('btn-add-harvest').addEventListener('click', () => showHarvestForm(null));
 get('btn-export-harvest').addEventListener('click', () => showExportModal('Export Harvest Log', '/api/harvest', 'harvest-log'));
 get('harvest-plant-filter').addEventListener('change', renderHarvests);
 get('harvest-bed-filter').addEventListener('change', renderHarvests);
+
+// Global search
+let _searchTimer = null;
+let _preSearchSection = 'dashboard';
+
+get('global-search').addEventListener('input', () => {
+  clearTimeout(_searchTimer);
+  const q = get('global-search').value.trim();
+  if (!q) {
+    if (currentSection === 'search') navigate(_preSearchSection);
+    return;
+  }
+  _searchTimer = setTimeout(() => runGlobalSearch(q), 300);
+});
+
+async function runGlobalSearch(q) {
+  if (currentSection !== 'search') _preSearchSection = currentSection;
+  qsa('.section').forEach(s => s.classList.add('hidden'));
+  qsa('.nav-item').forEach(n => n.classList.remove('active'));
+  get('section-search').classList.remove('hidden');
+  get('search-heading').textContent = `Results for "${q}"`;
+  currentSection = 'search';
+
+  const results = await api('GET', `/api/search?q=${encodeURIComponent(q)}`);
+  renderSearchResults(results, q);
+}
+
+function renderSearchResults(results, q) {
+  const container = get('search-results');
+  if (!results.length) {
+    container.innerHTML = `<p class="search-empty">No results for <strong>${escHtml(q)}</strong></p>`;
+    return;
+  }
+
+  const sectionLabels = { plants: 'Plants', beds: 'Beds', tasks: 'Tasks', calendar: 'Events', journal: 'Journal' };
+  const groups = {};
+  results.forEach(r => {
+    if (!groups[r.section]) groups[r.section] = [];
+    groups[r.section].push(r);
+  });
+
+  container.innerHTML = '';
+  for (const [section, items] of Object.entries(groups)) {
+    const group = el('div', 'search-group');
+    const heading = el('h2', 'search-group-title', escHtml(sectionLabels[section] || section));
+    group.appendChild(heading);
+    const list = el('div', 'search-group-list');
+    items.forEach(item => {
+      const row = el('div', 'search-result-item');
+      const desc = item.description ? item.description.slice(0, 120) : '';
+      row.innerHTML = `<div class="search-result-title">${escHtml(item.title)}</div>${desc ? `<div class="search-result-desc">${escHtml(desc)}</div>` : ''}`;
+      row.onclick = () => {
+        get('global-search').value = '';
+        navigate(section);
+      };
+      list.appendChild(row);
+    });
+    group.appendChild(list);
+    container.appendChild(group);
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Prefetch plants and beds so they're available everywhere
