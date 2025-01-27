@@ -1481,7 +1481,24 @@ function renderSearchResults(results, q) {
   }
 }
 
+function initTheme() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+  get('theme-toggle').textContent = theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+
+  get('theme-toggle').addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    get('theme-toggle').textContent = next === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
+
   // Prefetch plants and beds so they're available everywhere
   try {
     [allPlants, allBeds] = await Promise.all([
