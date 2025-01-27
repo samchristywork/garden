@@ -32,6 +32,9 @@
         <li class="nav-item" data-section="journal">
           <span class="nav-icon">&#128214;</span> Journal
         </li>
+        <li class="nav-item" data-section="harvest">
+          <span class="nav-icon">&#127806;</span> Harvest Log
+        </li>
       </ul>
     </nav>
 
@@ -96,6 +99,7 @@
             <button class="btn btn-ghost" id="btn-back-beds">&larr; All Beds</button>
             <h1 id="bed-detail-name"></h1>
             <div class="header-actions">
+              <button class="btn btn-secondary" id="btn-log-harvest-bed">Log Harvest</button>
               <button class="btn btn-secondary" id="btn-edit-bed">Edit</button>
               <button class="btn btn-danger" id="btn-delete-bed">Delete</button>
             </div>
@@ -168,6 +172,25 @@
           </div>
           <div id="journal-entry-body" class="entry-body"></div>
         </div>
+      </section>
+      <!-- Harvest Log -->
+      <section id="section-harvest" class="section hidden">
+        <div class="section-header">
+          <h1>Harvest Log</h1>
+          <div class="header-actions">
+            <button class="btn btn-secondary" id="btn-export-harvest">Export</button>
+            <button class="btn btn-primary" id="btn-add-harvest">+ Log Harvest</button>
+          </div>
+        </div>
+        <div class="search-bar">
+          <select id="harvest-plant-filter" class="input select">
+            <option value="">All plants</option>
+          </select>
+          <select id="harvest-bed-filter" class="input select">
+            <option value="">All beds</option>
+          </select>
+        </div>
+        <div id="harvest-list" class="tasks-list"></div>
       </section>
     </main>
   </div>

@@ -89,6 +89,7 @@ const loaders = {
   calendar:  loadCalendar,
   tasks:     loadTasks,
   journal:   loadNotes,
+  harvest:   loadHarvests,
 };
 
 async function loadDashboard() {
@@ -300,6 +301,7 @@ function plantFormHtml(p) {
     </div>
     <div class="form-actions">
       ${p ? `<button type="button" class="btn btn-danger btn-sm" id="btn-del-plant">Delete</button>` : ''}
+      ${p ? `<button type="button" class="btn btn-secondary btn-sm" id="btn-log-harvest-plant">Log Harvest</button>` : ''}
       <button type="button" class="btn btn-ghost" id="btn-cancel-plant">Cancel</button>
       <button type="submit" class="btn btn-primary">${p ? 'Save Changes' : 'Add Plant'}</button>
     </div>
@@ -369,6 +371,12 @@ function showPlantForm(plant) {
 
   const cancelBtn = get('btn-cancel-plant');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
+
+  const logHarvestPlantBtn = get('btn-log-harvest-plant');
+  if (logHarvestPlantBtn) logHarvestPlantBtn.onclick = () => {
+    Modal.close();
+    showHarvestForm(null, plant.id, null);
+  };
 
   const delBtn = get('btn-del-plant');
   if (delBtn) delBtn.onclick = async () => {
@@ -614,6 +622,10 @@ get('btn-delete-bed').addEventListener('click', async () => {
   await api('DELETE', `/api/beds/${currentBedId}`);
   showBedsListView();
   await Promise.all([loadBeds(), refreshPlantsCache()]);
+});
+
+get('btn-log-harvest-bed').addEventListener('click', () => {
+  showHarvestForm(null, null, currentBedId);
 });
 
 let calYear  = new Date().getFullYear();
@@ -1205,8 +1217,8 @@ function formData(form) {
     if (k === 'color_picker') continue;
     obj[k] = v === '' ? null : v;
     // Coerce numeric fields
-    if (['spacing_inches','days_to_maturity','rows','cols','plant_id','bed_id'].includes(k) && v !== '') {
-      const n = ['spacing_inches','days_to_maturity'].includes(k) ? parseFloat(v) : parseInt(v, 10);
+    if (['spacing_inches','days_to_maturity','rows','cols','plant_id','bed_id','quantity'].includes(k) && v !== '') {
+      const n = ['spacing_inches','days_to_maturity','quantity'].includes(k) ? parseFloat(v) : parseInt(v, 10);
       if (!isFinite(n)) throw new Error(`Invalid value for ${k}: ${v}`);
       obj[k] = n;
     }
@@ -1261,6 +1273,149 @@ function escHtml(str) {
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#39;');
 }
+
+let allHarvests = [];
+
+async function loadHarvests() {
+  allHarvests = await api('GET', '/api/harvest');
+  populateHarvestFilters();
+  renderHarvests();
+}
+
+function populateHarvestFilters() {
+  const plantSel = get('harvest-plant-filter');
+  const bedSel   = get('harvest-bed-filter');
+  const prevPlant = plantSel.value;
+  const prevBed   = bedSel.value;
+
+  const plants = [...new Map(allHarvests.filter(h => h.plant_id).map(h => [h.plant_id, h.plant_name])).entries()];
+  const beds   = [...new Map(allHarvests.filter(h => h.bed_id).map(h => [h.bed_id, h.bed_name])).entries()];
+
+  plantSel.innerHTML = '<option value="">All plants</option>' +
+    plants.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+  bedSel.innerHTML = '<option value="">All beds</option>' +
+    beds.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+
+  plantSel.value = prevPlant;
+  bedSel.value   = prevBed;
+}
+
+function renderHarvests() {
+  const list = get('harvest-list');
+  list.innerHTML = '';
+  const plantFilter = get('harvest-plant-filter').value;
+  const bedFilter   = get('harvest-bed-filter').value;
+
+  let filtered = allHarvests;
+  if (plantFilter) filtered = filtered.filter(h => String(h.plant_id) === plantFilter);
+  if (bedFilter)   filtered = filtered.filter(h => String(h.bed_id) === bedFilter);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="notes-empty">${allHarvests.length ? 'No harvests match your filters.' : 'No harvests logged yet. Record your first harvest!'}</div>`;
+    return;
+  }
+
+  filtered.forEach(h => {
+    const item = el('div', 'task-item');
+    const tags = [h.plant_name, h.bed_name].filter(Boolean);
+    const info = el('div', 'task-info');
+    info.innerHTML = `
+      <div class="task-title">${escHtml(String(h.quantity))} ${escHtml(h.unit)}${h.plant_name ? ` of ${escHtml(h.plant_name)}` : ''}</div>
+      <div class="task-meta">
+        <span>${fmtDate(h.harvested_at)}</span>
+        ${tags.length > 1 || (tags.length === 1 && !h.plant_name) ? `<span class="badge badge-other">${escHtml(h.bed_name)}</span>` : ''}
+        ${h.notes ? `<span class="task-notes">${escHtml(h.notes)}</span>` : ''}
+      </div>`;
+
+    const actions = el('div', 'task-actions');
+    const editBtn = el('button', 'btn btn-ghost btn-sm', 'Edit');
+    editBtn.onclick = () => showHarvestForm(h);
+    const delBtn = el('button', 'btn btn-danger btn-sm', 'Delete');
+    delBtn.onclick = async () => {
+      if (!confirm('Delete this harvest entry?')) return;
+      try {
+        await api('DELETE', `/api/harvest/${h.id}`);
+        await loadHarvests();
+      } catch (e) { showToast(e.message); }
+    };
+    actions.append(editBtn, delBtn);
+    item.append(info, actions);
+    list.appendChild(item);
+  });
+}
+
+function harvestFormHtml(h, prefillPlantId, prefillBedId) {
+  const plants = allPlants.map(p => {
+    const sel = h ? h.plant_id === p.id : String(p.id) === String(prefillPlantId);
+    return `<option value="${p.id}" ${sel ? 'selected' : ''}>${escHtml(p.name)}</option>`;
+  }).join('');
+  const beds = allBeds.map(b => {
+    const sel = h ? h.bed_id === b.id : String(b.id) === String(prefillBedId);
+    return `<option value="${b.id}" ${sel ? 'selected' : ''}>${escHtml(b.name)}</option>`;
+  }).join('');
+  const units = ['lbs','oz','kg','g','items','bunches','cups','quarts','gallons'];
+  const unitOpts = units.map(u => `<option value="${u}" ${(h?.unit ?? 'lbs') === u ? 'selected' : ''}>${u}</option>`).join('');
+  return `<form id="harvest-form">
+    <div class="form-row">
+      <label>Date *</label>
+      <input class="input" type="date" name="harvested_at" value="${h?.harvested_at || today()}" required>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Quantity *</label>
+        <input class="input" type="number" name="quantity" min="0.01" step="any" value="${h?.quantity || ''}" required>
+      </div>
+      <div class="form-row">
+        <label>Unit</label>
+        <select class="input" name="unit">${unitOpts}</select>
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Plant</label>
+        <select class="input" name="plant_id">
+          <option value="">— none —</option>${plants}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Bed</label>
+        <select class="input" name="bed_id">
+          <option value="">— none —</option>${beds}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea class="input" name="notes">${escHtml(h?.notes || '')}</textarea>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" id="btn-cancel-harvest">Cancel</button>
+      <button type="submit" class="btn btn-primary">${h ? 'Save Changes' : 'Log Harvest'}</button>
+    </div>
+  </form>`;
+}
+
+function showHarvestForm(harvest, prefillPlantId, prefillBedId) {
+  Modal.show(harvest ? 'Edit Harvest' : 'Log Harvest', harvestFormHtml(harvest, prefillPlantId, prefillBedId), async (form) => {
+    const data = formData(form);
+    try {
+      if (harvest) {
+        await api('PUT', `/api/harvest/${harvest.id}`, data);
+      } else {
+        await api('POST', '/api/harvest', data);
+      }
+      Modal.close();
+      if (currentSection === 'harvest') await loadHarvests();
+    } catch (e) { showToast(e.message); }
+  });
+  const cancelBtn = get('btn-cancel-harvest');
+  if (cancelBtn) cancelBtn.onclick = Modal.close;
+}
+
+get('btn-add-harvest').addEventListener('click', () => showHarvestForm(null));
+get('btn-export-harvest').addEventListener('click', () => showExportModal('Export Harvest Log', '/api/harvest', 'harvest-log'));
+get('harvest-plant-filter').addEventListener('change', renderHarvests);
+get('harvest-bed-filter').addEventListener('change', renderHarvests);
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Prefetch plants and beds so they're available everywhere

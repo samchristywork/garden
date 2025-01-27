@@ -74,6 +74,17 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS harvest_logs (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    plant_id     INTEGER REFERENCES plants(id) ON DELETE SET NULL,
+    bed_id       INTEGER REFERENCES garden_beds(id) ON DELETE SET NULL,
+    quantity     REAL NOT NULL,
+    unit         TEXT NOT NULL DEFAULT 'lbs',
+    harvested_at TEXT NOT NULL DEFAULT (date('now')),
+    notes        TEXT,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 try {
