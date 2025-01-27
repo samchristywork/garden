@@ -12,9 +12,24 @@ const WITH_JOINS = `
 `;
 
 router.get("/", (req, res) => {
-  res.json(
-    db.prepare(`${WITH_JOINS} ORDER BY h.harvested_at DESC, h.created_at DESC`).all()
-  );
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 25, 1), 100);
+  const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+
+  const conditions = [];
+  const params = [];
+  if (req.query.plant_id) {
+    conditions.push("h.plant_id = ?");
+    params.push(req.query.plant_id);
+  }
+  if (req.query.bed_id) {
+    conditions.push("h.bed_id = ?");
+    params.push(req.query.bed_id);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM harvest_logs h ${where}`).get(...params).n;
+  const data = db.prepare(`${WITH_JOINS} ${where} ORDER BY h.harvested_at DESC, h.created_at DESC LIMIT ? OFFSET ?`).all(...params, limit, offset);
+  res.json({ data, total });
 });
 
 router.post("/", (req, res) => {

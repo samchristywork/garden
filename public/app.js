@@ -21,6 +21,29 @@ function el(tag, cls, html) {
   return e;
 }
 
+const PAGE_SIZE = 25;
+
+function renderPagination(containerId, page, total, onPageChange) {
+  const container = get(containerId);
+  container.innerHTML = '';
+  if (total <= PAGE_SIZE) return;
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const start = page * PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PAGE_SIZE, total);
+
+  const prev = el('button', 'btn btn-ghost btn-sm', '&larr; Prev');
+  const info = el('span', 'pagination-info', `${start}–${end} of ${total}`);
+  const next = el('button', 'btn btn-ghost btn-sm', 'Next &rarr;');
+
+  prev.disabled = page === 0;
+  next.disabled = page >= totalPages - 1;
+  prev.onclick = () => onPageChange(page - 1);
+  next.onclick = () => onPageChange(page + 1);
+
+  container.append(prev, info, next);
+}
+
 function showToast(msg) {
   const container = get('toast-container');
   const toast = el('div', 'toast', msg);
@@ -96,15 +119,16 @@ const loaders = {
 };
 
 async function loadDashboard() {
-  const [plants, beds, tasks, events, notes] = await Promise.all([
+  const [plants, beds, pendingTasks, events, notes] = await Promise.all([
     api('GET', '/api/plants'),
     api('GET', '/api/beds'),
-    api('GET', '/api/tasks'),
+    api('GET', '/api/tasks?completed=false&limit=5'),
     api('GET', '/api/calendar'),
-    api('GET', '/api/notes'),
+    api('GET', '/api/notes?limit=5'),
   ]);
 
-  const pending = tasks.filter(t => !t.completed);
+  const pending = pendingTasks.data;
+  const pendingTotal = pendingTasks.total;
   const upcoming = events.filter(e => e.event_date >= today()).slice(0, 5);
 
   // Stats
@@ -113,7 +137,7 @@ async function loadDashboard() {
   [
     { value: plants.length, label: 'Plants' },
     { value: beds.length,   label: 'Garden Beds' },
-    { value: pending.length, label: 'Pending Tasks' },
+    { value: pendingTotal, label: 'Pending Tasks' },
     { value: upcoming.length, label: 'Upcoming Events' },
   ].forEach(s => {
     const card = el('div', 'stat-card');
@@ -124,12 +148,7 @@ async function loadDashboard() {
   // Upcoming tasks
   const tasksEl = get('dashboard-tasks');
   tasksEl.innerHTML = '';
-  const upTasks = pending.sort((a, b) => {
-    if (!a.due_date && !b.due_date) return 0;
-    if (!a.due_date) return 1;
-    if (!b.due_date) return -1;
-    return a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0;
-  }).slice(0, 5);
+  const upTasks = pending.slice(0, 5);
   if (!upTasks.length) {
     tasksEl.innerHTML = '<div class="panel-empty">No pending tasks</div>';
   } else {
@@ -160,7 +179,7 @@ async function loadDashboard() {
   // Recent journal
   const journalEl = get('dashboard-journal');
   journalEl.innerHTML = '';
-  const recentNotes = notes.slice(0, 5);
+  const recentNotes = notes.data;
   if (!recentNotes.length) {
     journalEl.innerHTML = '<div class="panel-empty">No journal entries</div>';
   } else {
@@ -175,9 +194,11 @@ async function loadDashboard() {
 }
 
 let allPlants = [];
+let plantsPage = 0;
 
 async function loadPlants() {
   allPlants = await api('GET', '/api/plants');
+  plantsPage = 0;
   renderPlants();
 }
 
@@ -192,15 +213,19 @@ function renderPlants() {
   if (search) list = list.filter(p => p.name.toLowerCase().includes(search) || (p.variety || '').toLowerCase().includes(search));
   if (typeFilter) list = list.filter(p => p.type === typeFilter);
 
+  const total = list.length;
+  const paged = list.slice(plantsPage * PAGE_SIZE, (plantsPage + 1) * PAGE_SIZE);
+
   const grid = get('plants-grid');
   grid.innerHTML = '';
 
-  if (!list.length) {
+  if (!paged.length) {
     grid.innerHTML = '<div class="plant-card-empty">No plants found. Add one to get started.</div>';
+    renderPagination('plants-pagination', plantsPage, total, p => { plantsPage = p; renderPlants(); });
     return;
   }
 
-  list.forEach(p => {
+  paged.forEach(p => {
     const card = el('div', 'plant-card');
     const topHtml = p.image_url
       ? `<div class="plant-card-photo"><img src="${escHtml(p.image_url)}" alt="${escHtml(p.name)}"></div>`
@@ -221,10 +246,11 @@ function renderPlants() {
     card.onclick = () => showPlantForm(p);
     grid.appendChild(card);
   });
+  renderPagination('plants-pagination', plantsPage, total, p => { plantsPage = p; renderPlants(); });
 }
 
-get('plant-search').addEventListener('input', renderPlants);
-get('plant-type-filter').addEventListener('change', renderPlants);
+get('plant-search').addEventListener('input', () => { plantsPage = 0; renderPlants(); });
+get('plant-type-filter').addEventListener('change', () => { plantsPage = 0; renderPlants(); });
 get('btn-add-plant').addEventListener('click', () => showPlantForm(null));
 get('btn-export-plants').addEventListener('click', () => showExportModal('Export Plants', '/api/plants', 'plants'));
 
@@ -898,24 +924,25 @@ function eventTypeColor(type) {
   return colors[type] || colors.other;
 }
 
-let allTasks = [];
 let taskFilter = 'pending';
+let tasksPage = 0;
 
-async function loadTasks() {
-  allTasks = await api('GET', '/api/tasks');
-  renderTasks();
+async function loadTasks(page = 0) {
+  tasksPage = page;
+  const params = new URLSearchParams({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+  if (taskFilter === 'pending')   params.set('completed', 'false');
+  if (taskFilter === 'completed') params.set('completed', 'true');
+  const { data, total } = await api('GET', `/api/tasks?${params}`);
+  renderTasks(data, total);
 }
 
-function renderTasks() {
-  let list = allTasks;
-  if (taskFilter === 'pending')   list = list.filter(t => !t.completed);
-  if (taskFilter === 'completed') list = list.filter(t => t.completed);
-
+function renderTasks(list, total) {
   const container = get('tasks-list');
   container.innerHTML = '';
 
   if (!list.length) {
     container.innerHTML = `<div class="tasks-empty">No ${taskFilter} tasks.</div>`;
+    renderPagination('tasks-pagination', tasksPage, total, p => loadTasks(p));
     return;
   }
 
@@ -926,7 +953,7 @@ function renderTasks() {
     if (t.completed) checkEl.innerHTML = '&#10003;';
     checkEl.addEventListener('click', async () => {
       await api('PATCH', `/api/tasks/${t.id}/complete`, { completed: !t.completed });
-      await loadTasks();
+      await loadTasks(tasksPage);
     });
 
     const dueCls = getDueCls(t.due_date, t.completed);
@@ -954,6 +981,7 @@ function renderTasks() {
     item.appendChild(actions);
     container.appendChild(item);
   });
+  renderPagination('tasks-pagination', tasksPage, total, p => loadTasks(p));
 }
 
 function getDueCls(due, completed) {
@@ -971,7 +999,7 @@ qsa('.filter-tab').forEach(tab => {
     qsa('.filter-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     taskFilter = tab.dataset.filter;
-    renderTasks();
+    loadTasks(0);
   });
 });
 
@@ -1052,14 +1080,22 @@ function showTaskForm(task) {
   };
 }
 
-let allNotes = [];
 let currentNoteId = null;
+let notesPage = 0;
 
-async function loadNotes() {
-  allNotes = await api('GET', '/api/notes');
+async function loadNotes(page = 0) {
+  notesPage = page;
   populateNoteFilters();
   showNoteListView();
-  renderNotes();
+  const params = new URLSearchParams({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+  const search      = get('journal-search').value;
+  const plantFilter = get('journal-plant-filter').value;
+  const bedFilter   = get('journal-bed-filter').value;
+  if (search)      params.set('search', search);
+  if (plantFilter) params.set('plant_id', plantFilter);
+  if (bedFilter)   params.set('bed_id', bedFilter);
+  const { data, total } = await api('GET', `/api/notes?${params}`);
+  renderNotes(data, total);
 }
 
 function populateNoteFilters() {
@@ -1068,13 +1104,10 @@ function populateNoteFilters() {
   const prevPlant = plantSel.value;
   const prevBed   = bedSel.value;
 
-  const plants = [...new Map(allNotes.filter(n => n.plant_id).map(n => [n.plant_id, n.plant_name])).entries()];
-  const beds   = [...new Map(allNotes.filter(n => n.bed_id).map(n => [n.bed_id, n.bed_name])).entries()];
-
   plantSel.innerHTML = '<option value="">All plants</option>' +
-    plants.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+    allPlants.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
   bedSel.innerHTML = '<option value="">All beds</option>' +
-    beds.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+    allBeds.map(b => `<option value="${b.id}">${escHtml(b.name)}</option>`).join('');
 
   plantSel.value = prevPlant;
   bedSel.value   = prevBed;
@@ -1085,23 +1118,16 @@ function showNoteListView() {
   get('journal-entry-view').classList.add('hidden');
 }
 
-function renderNotes() {
+function renderNotes(notes, total) {
   const list = get('notes-list');
   list.innerHTML = '';
-  const search      = get('journal-search').value.toLowerCase();
-  const plantFilter = get('journal-plant-filter').value;
-  const bedFilter   = get('journal-bed-filter').value;
 
-  let filtered = allNotes;
-  if (search)      filtered = filtered.filter(n => n.title.toLowerCase().includes(search) || (n.content || '').toLowerCase().includes(search));
-  if (plantFilter) filtered = filtered.filter(n => String(n.plant_id) === plantFilter);
-  if (bedFilter)   filtered = filtered.filter(n => String(n.bed_id) === bedFilter);
-
-  if (!filtered.length) {
-    list.innerHTML = `<div class="notes-empty">${allNotes.length ? 'No entries match your search.' : 'No journal entries yet. Record your first observation!'}</div>`;
+  if (!notes.length) {
+    list.innerHTML = `<div class="notes-empty">${total === 0 ? 'No journal entries yet. Record your first observation!' : 'No entries match your search.'}</div>`;
+    renderPagination('notes-pagination', notesPage, total, p => loadNotes(p));
     return;
   }
-  filtered.forEach(n => {
+  notes.forEach(n => {
     const card = el('div', 'note-card');
     const preview = (n.content || '').replace(/\n/g, ' ').slice(0, 140);
     const tags = [n.plant_name, n.bed_name].filter(Boolean);
@@ -1115,6 +1141,7 @@ function renderNotes() {
     card.onclick = () => openNote(n.id);
     list.appendChild(card);
   });
+  renderPagination('notes-pagination', notesPage, total, p => loadNotes(p));
 }
 
 async function openNote(noteId) {
@@ -1135,9 +1162,9 @@ get('btn-back-journal').addEventListener('click', () => {
   showNoteListView();
 });
 
-get('journal-search').addEventListener('input', renderNotes);
-get('journal-plant-filter').addEventListener('change', renderNotes);
-get('journal-bed-filter').addEventListener('change', renderNotes);
+get('journal-search').addEventListener('input', () => loadNotes(0));
+get('journal-plant-filter').addEventListener('change', () => loadNotes(0));
+get('journal-bed-filter').addEventListener('change', () => loadNotes(0));
 
 get('btn-add-note').addEventListener('click', () => showNoteForm(null));
 get('btn-export-notes').addEventListener('click', () => showExportModal('Export Journal', '/api/notes', 'journal'));
@@ -1255,13 +1282,18 @@ function showExportModal(title, endpoint, filename) {
       <button class="btn btn-secondary" id="exp-csv">Download CSV</button>
     </div>
   `);
+  const fetchAll = async () => {
+    const sep = endpoint.includes('?') ? '&' : '?';
+    const raw = await api('GET', `${endpoint}${sep}limit=10000`);
+    return Array.isArray(raw) ? raw : raw.data;
+  };
   get('exp-json').onclick = async () => {
-    const data = await api('GET', endpoint);
+    const data = await fetchAll();
     downloadFile(JSON.stringify(data, null, 2), filename + '.json', 'application/json');
     Modal.close();
   };
   get('exp-csv').onclick = async () => {
-    const data = await api('GET', endpoint);
+    const data = await fetchAll();
     downloadFile(toCSV(data), filename + '.csv', 'text/csv');
     Modal.close();
   };
@@ -1277,12 +1309,18 @@ function escHtml(str) {
     .replace(/'/g,'&#39;');
 }
 
-let allHarvests = [];
+let harvestPage = 0;
 
-async function loadHarvests() {
-  allHarvests = await api('GET', '/api/harvest');
+async function loadHarvests(page = 0) {
+  harvestPage = page;
   populateHarvestFilters();
-  renderHarvests();
+  const params = new URLSearchParams({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+  const plantFilter = get('harvest-plant-filter').value;
+  const bedFilter   = get('harvest-bed-filter').value;
+  if (plantFilter) params.set('plant_id', plantFilter);
+  if (bedFilter)   params.set('bed_id', bedFilter);
+  const { data, total } = await api('GET', `/api/harvest?${params}`);
+  renderHarvests(data, total);
 }
 
 function populateHarvestFilters() {
@@ -1291,34 +1329,26 @@ function populateHarvestFilters() {
   const prevPlant = plantSel.value;
   const prevBed   = bedSel.value;
 
-  const plants = [...new Map(allHarvests.filter(h => h.plant_id).map(h => [h.plant_id, h.plant_name])).entries()];
-  const beds   = [...new Map(allHarvests.filter(h => h.bed_id).map(h => [h.bed_id, h.bed_name])).entries()];
-
   plantSel.innerHTML = '<option value="">All plants</option>' +
-    plants.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+    allPlants.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
   bedSel.innerHTML = '<option value="">All beds</option>' +
-    beds.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+    allBeds.map(b => `<option value="${b.id}">${escHtml(b.name)}</option>`).join('');
 
   plantSel.value = prevPlant;
   bedSel.value   = prevBed;
 }
 
-function renderHarvests() {
+function renderHarvests(harvests, total) {
   const list = get('harvest-list');
   list.innerHTML = '';
-  const plantFilter = get('harvest-plant-filter').value;
-  const bedFilter   = get('harvest-bed-filter').value;
 
-  let filtered = allHarvests;
-  if (plantFilter) filtered = filtered.filter(h => String(h.plant_id) === plantFilter);
-  if (bedFilter)   filtered = filtered.filter(h => String(h.bed_id) === bedFilter);
-
-  if (!filtered.length) {
-    list.innerHTML = `<div class="notes-empty">${allHarvests.length ? 'No harvests match your filters.' : 'No harvests logged yet. Record your first harvest!'}</div>`;
+  if (!harvests.length) {
+    list.innerHTML = `<div class="notes-empty">${total === 0 ? 'No harvests logged yet. Record your first harvest!' : 'No harvests match your filters.'}</div>`;
+    renderPagination('harvest-pagination', harvestPage, total, p => loadHarvests(p));
     return;
   }
 
-  filtered.forEach(h => {
+  harvests.forEach(h => {
     const item = el('div', 'task-item');
     const tags = [h.plant_name, h.bed_name].filter(Boolean);
     const info = el('div', 'task-info');
@@ -1345,6 +1375,7 @@ function renderHarvests() {
     item.append(info, actions);
     list.appendChild(item);
   });
+  renderPagination('harvest-pagination', harvestPage, total, p => loadHarvests(p));
 }
 
 function harvestFormHtml(h, prefillPlantId, prefillBedId) {
@@ -1417,8 +1448,8 @@ function showHarvestForm(harvest, prefillPlantId, prefillBedId) {
 
 get('btn-add-harvest').addEventListener('click', () => showHarvestForm(null));
 get('btn-export-harvest').addEventListener('click', () => showExportModal('Export Harvest Log', '/api/harvest', 'harvest-log'));
-get('harvest-plant-filter').addEventListener('change', renderHarvests);
-get('harvest-bed-filter').addEventListener('change', renderHarvests);
+get('harvest-plant-filter').addEventListener('change', () => loadHarvests(0));
+get('harvest-bed-filter').addEventListener('change', () => loadHarvests(0));
 
 // Global search
 let _searchTimer = null;

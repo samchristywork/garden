@@ -26,28 +26,20 @@ const WITH_JOINS = `
 `;
 
 router.get("/", (req, res) => {
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 25, 1), 100);
+  const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+  const orderBy = `ORDER BY CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END, t.due_date, t.created_at`;
+
+  const params = [];
+  let where = '';
   if (req.query.completed !== undefined) {
-    return res.json(
-      db
-        .prepare(
-          `
-      ${WITH_JOINS} WHERE t.completed = ?
-      ORDER BY CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END, t.due_date, t.created_at
-    `,
-        )
-        .all(req.query.completed === "true" ? 1 : 0),
-    );
+    where = 'WHERE t.completed = ?';
+    params.push(req.query.completed === "true" ? 1 : 0);
   }
-  res.json(
-    db
-      .prepare(
-        `
-    ${WITH_JOINS}
-    ORDER BY CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END, t.due_date, t.created_at
-  `,
-      )
-      .all(),
-  );
+
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM tasks t ${where}`).get(...params).n;
+  const data = db.prepare(`${WITH_JOINS} ${where} ${orderBy} LIMIT ? OFFSET ?`).all(...params, limit, offset);
+  res.json({ data, total });
 });
 
 router.post("/", (req, res) => {

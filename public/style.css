@@ -461,6 +461,16 @@ textarea.input { resize: vertical; min-height: 80px; }
 
 .tasks-list { display: flex; flex-direction: column; gap: 8px; }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 8px 0;
+}
+.pagination-info { color: var(--text-muted); font-size: 13px; }
+
 .task-item {
   background: var(--card);
   border-radius: var(--radius);
