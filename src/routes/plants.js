@@ -5,6 +5,14 @@ const router = express.Router();
 const n = (v) => (v === undefined || v === "" || v === null ? null : v);
 const i = (v) => (v === undefined || v === "" || v === null ? null : Number(v));
 
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function imageTooBig(image_url) {
+  if (!image_url || !image_url.startsWith("data:")) return false;
+  const base64 = image_url.split(",")[1] || "";
+  return Math.ceil(base64.length * 3 / 4) > MAX_IMAGE_BYTES;
+}
+
 router.get("/", (req, res) => {
   const plants = db.prepare("SELECT * FROM plants ORDER BY name").all();
   res.json(plants);
@@ -33,6 +41,7 @@ router.post("/", (req, res) => {
     image_url,
   } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
+  if (imageTooBig(image_url)) return res.status(400).json({ error: "Image must be 10 MB or smaller" });
   const result = db
     .prepare(
       `
@@ -78,6 +87,7 @@ router.put("/:id", (req, res) => {
     image_url,
   } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
+  if (imageTooBig(image_url)) return res.status(400).json({ error: "Image must be 10 MB or smaller" });
   const info = db
     .prepare(
       `
