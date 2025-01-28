@@ -314,6 +314,14 @@ textarea.input { resize: vertical; min-height: 80px; }
 .bed-preview-cell.occupied { border-color: transparent; }
 .bed-card-empty { grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted); font-style: italic; }
 
+.template-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+.template-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+  cursor: pointer; transition: background .1s;
+}
+.template-option:hover { background: var(--green-100); }
+
 .bed-detail-body { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
 .bed-grid-wrap { overflow: auto; }
 .bed-grid { border-collapse: collapse; }

@@ -20,6 +20,71 @@ router.get("/", (req, res) => {
   res.json(beds.map(b => ({ ...b, cells: cellMap[b.id] || [] })));
 });
 
+router.get("/templates", (req, res) => {
+  const templates = db.prepare("SELECT * FROM bed_templates ORDER BY name").all();
+  const cellsByTemplate = db.prepare(`
+    SELECT btc.template_id, btc.row_num, btc.col_num, p.color AS plant_color
+    FROM bed_template_cells btc
+    JOIN plants p ON p.id = btc.plant_id
+  `).all();
+  const cellMap = {};
+  for (const c of cellsByTemplate) {
+    if (!cellMap[c.template_id]) cellMap[c.template_id] = [];
+    cellMap[c.template_id].push(c);
+  }
+  res.json(templates.map(t => ({ ...t, cells: cellMap[t.id] || [] })));
+});
+
+router.post("/templates", (req, res) => {
+  const { name, bed_id } = req.body;
+  if (!name) return res.status(400).json({ error: "name is required" });
+  const bed = db.prepare("SELECT * FROM garden_beds WHERE id = ?").get(bed_id);
+  if (!bed) return res.status(404).json({ error: "Bed not found" });
+
+  const result = db.prepare(
+    "INSERT INTO bed_templates (name, rows, cols, notes) VALUES (?, ?, ?, ?)"
+  ).run(name, bed.rows, bed.cols, n(bed.notes));
+  const templateId = result.lastInsertRowid;
+
+  const cells = db.prepare(
+    "SELECT row_num, col_num, plant_id FROM bed_cells WHERE bed_id = ? AND plant_id IS NOT NULL"
+  ).all(bed_id);
+  const insertCell = db.prepare(
+    "INSERT INTO bed_template_cells (template_id, row_num, col_num, plant_id) VALUES (?, ?, ?, ?)"
+  );
+  for (const c of cells) insertCell.run(templateId, c.row_num, c.col_num, c.plant_id);
+
+  res.status(201).json(db.prepare("SELECT * FROM bed_templates WHERE id = ?").get(templateId));
+});
+
+router.delete("/templates/:id", (req, res) => {
+  const info = db.prepare("DELETE FROM bed_templates WHERE id = ?").run(req.params.id);
+  if (info.changes === 0) return res.status(404).json({ error: "Not found" });
+  res.status(204).end();
+});
+
+router.post("/from-template/:templateId", (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: "name is required" });
+  const template = db.prepare("SELECT * FROM bed_templates WHERE id = ?").get(req.params.templateId);
+  if (!template) return res.status(404).json({ error: "Template not found" });
+
+  const result = db.prepare(
+    "INSERT INTO garden_beds (name, rows, cols, notes) VALUES (?, ?, ?, ?)"
+  ).run(name, template.rows, template.cols, n(template.notes));
+  const bedId = result.lastInsertRowid;
+
+  const cells = db.prepare(
+    "SELECT row_num, col_num, plant_id FROM bed_template_cells WHERE template_id = ? AND plant_id IS NOT NULL"
+  ).all(req.params.templateId);
+  const insertCell = db.prepare(
+    "INSERT INTO bed_cells (bed_id, row_num, col_num, plant_id) VALUES (?, ?, ?, ?)"
+  );
+  for (const c of cells) insertCell.run(bedId, c.row_num, c.col_num, c.plant_id);
+
+  res.status(201).json(db.prepare("SELECT * FROM garden_beds WHERE id = ?").get(bedId));
+});
+
 router.get("/:id", (req, res) => {
   const bed = db
     .prepare("SELECT * FROM garden_beds WHERE id = ?")

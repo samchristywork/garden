@@ -657,6 +657,96 @@ get('btn-log-harvest-bed').addEventListener('click', () => {
   showHarvestForm(null, null, currentBedId);
 });
 
+get('btn-save-as-template').addEventListener('click', () => {
+  const bed = allBeds.find(b => b.id === currentBedId) || {};
+  Modal.show('Save as Template', `
+    <form id="template-save-form">
+      <div class="form-row">
+        <label>Template Name *</label>
+        <input class="input" name="name" value="${escHtml(bed.name || '')}" required>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" id="btn-cancel-template">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Template</button>
+      </div>
+    </form>
+  `, async (form) => {
+    const { name } = formData(form);
+    try {
+      await api('POST', '/api/beds/templates', { name, bed_id: currentBedId });
+      Modal.close();
+      showToast('Template saved.');
+    } catch (e) { showToast(e.message); }
+  });
+  get('btn-cancel-template').onclick = Modal.close;
+});
+
+get('btn-from-template').addEventListener('click', async () => {
+  const templates = await api('GET', '/api/beds/templates');
+  if (!templates.length) {
+    Modal.show('From Template', '<p style="color:var(--text-muted);padding:16px 0">No templates saved yet. Open a bed and use "Save as Template" to create one.</p>');
+    return;
+  }
+
+  function templatePreviewHtml(t) {
+    const previewRows = Math.min(t.rows, 4);
+    const previewCols = Math.min(t.cols, 6);
+    const cellMap = {};
+    (t.cells || []).forEach(c => { cellMap[`${c.row_num},${c.col_num}`] = c.plant_color; });
+    let html = `<div class="bed-card-preview" style="--cols:${previewCols}">`;
+    for (let r = 0; r < previewRows; r++) {
+      html += '<div class="bed-preview-row">';
+      for (let c = 0; c < previewCols; c++) {
+        const color = cellMap[`${r},${c}`];
+        const style = color ? ` style="background:${escHtml(color)}"` : '';
+        const cls = color ? 'bed-preview-cell occupied' : 'bed-preview-cell';
+        html += `<div class="${cls}"${style}></div>`;
+      }
+      html += '</div>';
+    }
+    return html + '</div>';
+  }
+
+  const listHtml = templates.map(t => `
+    <div class="template-option" data-id="${t.id}">
+      <div>
+        <div class="bed-card-name">${escHtml(t.name)}</div>
+        <div class="bed-card-dims">${t.rows} rows &times; ${t.cols} columns</div>
+      </div>
+      ${templatePreviewHtml(t)}
+    </div>`).join('');
+
+  Modal.show('New Bed from Template', `<div class="template-list">${listHtml}</div>`);
+
+  qsa('.template-option', get('modal-body')).forEach(opt => {
+    opt.addEventListener('click', () => {
+      const templateId = opt.dataset.id;
+      const tName = templates.find(t => t.id === +templateId)?.name || '';
+      Modal.show('New Bed from Template', `
+        <form id="bed-from-template-form">
+          <div class="form-row">
+            <label>Bed Name *</label>
+            <input class="input" name="name" value="${escHtml(tName)}" required>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="btn-cancel-from-template">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Bed</button>
+          </div>
+        </form>
+      `, async (form) => {
+        const { name } = formData(form);
+        try {
+          const bed = await api('POST', `/api/beds/from-template/${templateId}`, { name });
+          Modal.close();
+          await loadBeds();
+          await openBedDetail(bed.id);
+        } catch (e) { showToast(e.message); }
+      });
+      get('btn-cancel-from-template').onclick = Modal.close;
+    });
+  });
+});
+
 let calYear  = new Date().getFullYear();
 let calMonth = new Date().getMonth(); // 0-based
 let allEvents = [];

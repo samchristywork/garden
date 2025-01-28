@@ -103,6 +103,27 @@ try {
   db.exec(`ALTER TABLE plants ADD COLUMN image_url TEXT`);
 } catch (e) { /* column already exists */ }
 
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bed_templates (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       TEXT NOT NULL,
+      rows       INTEGER NOT NULL,
+      cols       INTEGER NOT NULL,
+      notes      TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS bed_template_cells (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_id INTEGER NOT NULL REFERENCES bed_templates(id) ON DELETE CASCADE,
+      row_num     INTEGER NOT NULL,
+      col_num     INTEGER NOT NULL,
+      plant_id    INTEGER REFERENCES plants(id) ON DELETE SET NULL,
+      UNIQUE(template_id, row_num, col_num)
+    );
+  `);
+} catch (e) { /* tables already exist */ }
+
 // Seed catalog only on fresh installs
 const plantCount = db.prepare('SELECT COUNT(*) as c FROM plants').get();
 if (plantCount.c === 0) {
