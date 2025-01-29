@@ -110,6 +110,7 @@ router.post("/", (req, res) => {
   if (!name) return res.status(400).json({ error: "name is required" });
   const parsedRows = i(rows) ?? 4;
   const parsedCols = i(cols) ?? 6;
+  if (parsedRows < 1 || parsedCols < 1) return res.status(400).json({ error: "rows and cols must be at least 1" });
   if (parsedRows > 50 || parsedCols > 50) return res.status(400).json({ error: "rows and cols must be 50 or less" });
   const result = db
     .prepare(
@@ -130,6 +131,7 @@ router.put("/:id", (req, res) => {
   if (!name) return res.status(400).json({ error: "name is required" });
   const parsedRows = i(rows) ?? 4;
   const parsedCols = i(cols) ?? 6;
+  if (parsedRows < 1 || parsedCols < 1) return res.status(400).json({ error: "rows and cols must be at least 1" });
   if (parsedRows > 50 || parsedCols > 50) return res.status(400).json({ error: "rows and cols must be 50 or less" });
   const info = db
     .prepare(
