@@ -13,6 +13,11 @@ function imageTooBig(image_url) {
   return Math.ceil(base64.length * 3 / 4) > MAX_IMAGE_BYTES;
 }
 
+function invalidColor(color) {
+  if (!color) return false; // null/empty falls back to default
+  return !/^#[0-9a-fA-F]{6}$/.test(color);
+}
+
 router.get("/", (req, res) => {
   const plants = db.prepare("SELECT * FROM plants ORDER BY name").all();
   res.json(plants);
@@ -42,6 +47,7 @@ router.post("/", (req, res) => {
   } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
   if (imageTooBig(image_url)) return res.status(400).json({ error: "Image must be 10 MB or smaller" });
+  if (invalidColor(color)) return res.status(400).json({ error: "color must be a valid hex color (e.g. #4a7c4e)" });
   const result = db
     .prepare(
       `
@@ -88,6 +94,7 @@ router.put("/:id", (req, res) => {
   } = req.body;
   if (!name) return res.status(400).json({ error: "name is required" });
   if (imageTooBig(image_url)) return res.status(400).json({ error: "Image must be 10 MB or smaller" });
+  if (invalidColor(color)) return res.status(400).json({ error: "color must be a valid hex color (e.g. #4a7c4e)" });
   const info = db
     .prepare(
       `
