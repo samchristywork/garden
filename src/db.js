@@ -96,6 +96,10 @@ try {
 } catch (e) { /* column already exists */ }
 
 try {
+  db.exec(`ALTER TABLE tasks ADD COLUMN spawned_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
+} catch (e) { /* column already exists */ }
+
+try {
   db.exec(`ALTER TABLE calendar_events ADD COLUMN recurrence_rule TEXT`);
 } catch (e) { /* column already exists */ }
 

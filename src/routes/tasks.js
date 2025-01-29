@@ -94,25 +94,32 @@ router.put("/:id", (req, res) => {
 
 router.patch("/:id/complete", (req, res) => {
   const { completed } = req.body;
-  const task = db.prepare(`${WITH_JOINS} WHERE t.id = ?`).get(req.params.id);
+  const task = db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(req.params.id);
   if (!task) return res.status(404).json({ error: "Not found" });
 
-  db.prepare(`UPDATE tasks SET completed=?, completed_at=? WHERE id=?`)
-    .run(
-      completed ? 1 : 0,
-      completed ? new Date().toISOString() : null,
-      req.params.id,
-    );
+  if (completed) {
+    db.prepare(`UPDATE tasks SET completed=1, completed_at=? WHERE id=?`)
+      .run(new Date().toISOString(), req.params.id);
 
-  // Auto-spawn next occurrence when completing a recurring task
-  if (completed && task.recurrence_rule) {
-    const nextDue = nextDate(task.due_date, task.recurrence_rule);
-    if (nextDue) {
-      db.prepare(
-        `INSERT INTO tasks (title, type, due_date, plant_id, bed_id, notes, recurrence_rule)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).run(task.title, task.type, nextDue, task.plant_id, task.bed_id, task.notes, task.recurrence_rule);
+    // Auto-spawn next occurrence when completing a recurring task
+    if (task.recurrence_rule) {
+      const nextDue = nextDate(task.due_date, task.recurrence_rule);
+      if (nextDue) {
+        const spawn = db.prepare(
+          `INSERT INTO tasks (title, type, due_date, plant_id, bed_id, notes, recurrence_rule)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).run(task.title, task.type, nextDue, task.plant_id, task.bed_id, task.notes, task.recurrence_rule);
+        db.prepare(`UPDATE tasks SET spawned_task_id=? WHERE id=?`)
+          .run(spawn.lastInsertRowid, req.params.id);
+      }
     }
+  } else {
+    // Un-completing: delete the spawned child task if it hasn't been completed yet
+    if (task.spawned_task_id) {
+      db.prepare(`DELETE FROM tasks WHERE id=? AND completed=0`).run(task.spawned_task_id);
+    }
+    db.prepare(`UPDATE tasks SET completed=0, completed_at=NULL, spawned_task_id=NULL WHERE id=?`)
+      .run(req.params.id);
   }
 
   res.json(db.prepare(`${WITH_JOINS} WHERE t.id = ?`).get(req.params.id));
