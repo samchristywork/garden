@@ -68,7 +68,7 @@ db.exec(`
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     title      TEXT NOT NULL,
     content    TEXT,
-    entry_date TEXT NOT NULL DEFAULT (date('now')),
+    entry_date TEXT NOT NULL DEFAULT (date('now', 'localtime')),
     plant_id   INTEGER REFERENCES plants(id) ON DELETE SET NULL,
     bed_id     INTEGER REFERENCES garden_beds(id) ON DELETE SET NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),

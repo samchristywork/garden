@@ -4,6 +4,11 @@ const router = express.Router();
 
 const n = (v) => (v === undefined || v === "" || v === null ? null : v);
 
+const localDateString = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 const WITH_JOINS = `
   SELECT e.*, p.name AS plant_name, b.name AS bed_name
   FROM journal_entries e
@@ -55,7 +60,7 @@ router.post("/", (req, res) => {
     .run(
       title,
       n(content),
-      n(entry_date) ?? new Date().toISOString().slice(0, 10),
+      n(entry_date) ?? localDateString(),
       n(plant_id),
       n(bed_id),
     );
@@ -80,7 +85,7 @@ router.put("/:id", (req, res) => {
     .run(
       title,
       n(content),
-      n(entry_date) ?? new Date().toISOString().slice(0, 10),
+      n(entry_date) ?? localDateString(),
       n(plant_id),
       n(bed_id),
       req.params.id,
