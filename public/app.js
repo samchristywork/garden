@@ -1374,8 +1374,16 @@ function showExportModal(title, endpoint, filename) {
   `);
   const fetchAll = async () => {
     const sep = endpoint.includes('?') ? '&' : '?';
-    const raw = await api('GET', `${endpoint}${sep}limit=10000`);
-    return Array.isArray(raw) ? raw : raw.data;
+    const raw = await api('GET', `${endpoint}${sep}limit=100&offset=0`);
+    if (Array.isArray(raw)) return raw;
+    const { data, total } = raw;
+    if (data.length >= total) return data;
+    const pages = [data];
+    for (let offset = data.length; offset < total; offset += 100) {
+      const page = await api('GET', `${endpoint}${sep}limit=100&offset=${offset}`);
+      pages.push(page.data);
+    }
+    return pages.flat();
   };
   get('exp-json').onclick = async () => {
     const data = await fetchAll();
