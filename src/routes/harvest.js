@@ -44,6 +44,14 @@ router.get("/", (req, res) => {
     conditions.push("h.bed_id = ?");
     params.push(req.query.bed_id);
   }
+  if (req.query.date_from) {
+    conditions.push("h.harvested_at >= ?");
+    params.push(req.query.date_from);
+  }
+  if (req.query.date_to) {
+    conditions.push("h.harvested_at <= ?");
+    params.push(req.query.date_to);
+  }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const total = db.prepare(`SELECT COUNT(*) AS n FROM harvest_logs h ${where}`).get(...params).n;

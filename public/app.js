@@ -1444,6 +1444,35 @@ function escHtml(str) {
 
 let harvestPage = 0;
 
+function harvestDateRange() {
+  const preset = get('harvest-date-preset').value;
+  if (preset === 'custom') {
+    return { date_from: get('harvest-date-from').value, date_to: get('harvest-date-to').value };
+  }
+  if (!preset) return {};
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  if (preset === 'this_week') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    return { date_from: ymd(start), date_to: ymd(now) };
+  }
+  if (preset === 'this_month') {
+    return { date_from: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`, date_to: ymd(now) };
+  }
+  if (preset === 'this_season') {
+    const m = now.getMonth();
+    const seasonStart = m < 3 ? 0 : m < 6 ? 3 : m < 9 ? 6 : 9;
+    const start = new Date(now.getFullYear(), seasonStart, 1);
+    return { date_from: ymd(start), date_to: ymd(now) };
+  }
+  if (preset === 'this_year') {
+    return { date_from: `${now.getFullYear()}-01-01`, date_to: ymd(now) };
+  }
+  return {};
+}
+
 async function loadHarvests(page = 0) {
   harvestPage = page;
   populateHarvestFilters();
@@ -1452,6 +1481,9 @@ async function loadHarvests(page = 0) {
   const bedFilter   = get('harvest-bed-filter').value;
   if (plantFilter) params.set('plant_id', plantFilter);
   if (bedFilter)   params.set('bed_id', bedFilter);
+  const { date_from, date_to } = harvestDateRange();
+  if (date_from) params.set('date_from', date_from);
+  if (date_to)   params.set('date_to', date_to);
   const { data, total } = await api('GET', `/api/harvest?${params}`);
   renderHarvests(data, total);
 }
@@ -1583,6 +1615,14 @@ get('btn-add-harvest').addEventListener('click', () => showHarvestForm(null));
 get('btn-export-harvest').addEventListener('click', () => showExportModal('Export Harvest Log', '/api/harvest', 'harvest-log'));
 get('harvest-plant-filter').addEventListener('change', () => loadHarvests(0));
 get('harvest-bed-filter').addEventListener('change', () => loadHarvests(0));
+get('harvest-date-preset').addEventListener('change', () => {
+  const isCustom = get('harvest-date-preset').value === 'custom';
+  get('harvest-date-from').classList.toggle('hidden', !isCustom);
+  get('harvest-date-to').classList.toggle('hidden', !isCustom);
+  if (!isCustom) loadHarvests(0);
+});
+get('harvest-date-from').addEventListener('change', () => loadHarvests(0));
+get('harvest-date-to').addEventListener('change', () => loadHarvests(0));
 
 // Backup / Restore
 get('btn-backup').addEventListener('click', () => {

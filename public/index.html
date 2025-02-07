@@ -228,6 +228,16 @@
           <select id="harvest-bed-filter" class="input select">
             <option value="">All beds</option>
           </select>
+          <select id="harvest-date-preset" class="input select">
+            <option value="">All time</option>
+            <option value="this_week">This week</option>
+            <option value="this_month">This month</option>
+            <option value="this_season">This season</option>
+            <option value="this_year">This year</option>
+            <option value="custom">Custom range…</option>
+          </select>
+          <input type="date" id="harvest-date-from" class="input hidden" placeholder="From">
+          <input type="date" id="harvest-date-to" class="input hidden" placeholder="To">
         </div>
         <div id="harvest-list" class="tasks-list"></div>
         <div id="harvest-pagination" class="pagination"></div>
