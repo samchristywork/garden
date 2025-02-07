@@ -13,6 +13,7 @@ app.use("/api/tasks", require("./src/routes/tasks"));
 app.use("/api/notes", require("./src/routes/notes"));
 app.use("/api/harvest", require("./src/routes/harvest"));
 app.use("/api/search", require("./src/routes/search"));
+app.use("/api/backup", require("./src/routes/backup"));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

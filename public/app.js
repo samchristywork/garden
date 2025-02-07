@@ -1584,6 +1584,39 @@ get('btn-export-harvest').addEventListener('click', () => showExportModal('Expor
 get('harvest-plant-filter').addEventListener('change', () => loadHarvests(0));
 get('harvest-bed-filter').addEventListener('change', () => loadHarvests(0));
 
+// Backup / Restore
+get('btn-backup').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = '/api/backup';
+  a.download = '';
+  a.click();
+});
+
+get('btn-restore').addEventListener('click', () => {
+  get('restore-file-input').value = '';
+  get('restore-file-input').click();
+});
+
+get('restore-file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!confirm('Restoring will replace ALL current data with the backup. This cannot be undone. Continue?')) return;
+  let backup;
+  try {
+    backup = JSON.parse(await file.text());
+  } catch {
+    showToast('Failed to read backup file — is it valid JSON?');
+    return;
+  }
+  try {
+    await api('POST', '/api/backup/restore', backup);
+    showToast('Backup restored successfully. Reloading...');
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    showToast('Restore failed: ' + err.message);
+  }
+});
+
 // Global search
 let _searchTimer = null;
 let _preSearchSection = 'dashboard';

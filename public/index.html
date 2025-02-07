@@ -57,6 +57,11 @@
       <section id="section-dashboard" class="section">
         <div class="section-header">
           <h1>Dashboard</h1>
+          <div class="header-actions">
+            <button class="btn btn-secondary" id="btn-backup">Download Backup</button>
+            <button class="btn btn-secondary" id="btn-restore">Restore Backup</button>
+            <input type="file" id="restore-file-input" accept=".json" style="display:none">
+          </div>
         </div>
         <div id="dashboard-stats" class="stats-grid"></div>
         <div class="dashboard-grid">
