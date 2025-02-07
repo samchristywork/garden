@@ -11,6 +11,25 @@ const WITH_JOINS = `
   LEFT JOIN garden_beds b ON b.id = h.bed_id
 `;
 
+router.get("/analytics", (req, res) => {
+  const by_plant = db.prepare(`
+    SELECT COALESCE(p.name, 'Unknown') AS plant_name, h.plant_id, h.unit, SUM(h.quantity) AS total
+    FROM harvest_logs h
+    LEFT JOIN plants p ON p.id = h.plant_id
+    GROUP BY h.plant_id, h.unit
+    ORDER BY total DESC
+  `).all();
+
+  const by_unit = db.prepare(`
+    SELECT unit, ROUND(SUM(quantity), 2) AS total
+    FROM harvest_logs
+    GROUP BY unit
+    ORDER BY total DESC
+  `).all();
+
+  res.json({ by_plant, by_unit });
+});
+
 router.get("/", (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 25, 1), 100);
   const offset = Math.max(parseInt(req.query.offset) || 0, 0);

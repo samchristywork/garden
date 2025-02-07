@@ -119,12 +119,13 @@ const loaders = {
 };
 
 async function loadDashboard() {
-  const [plants, beds, pendingTasks, events, notes] = await Promise.all([
+  const [plants, beds, pendingTasks, events, notes, harvestAnalytics] = await Promise.all([
     api('GET', '/api/plants'),
     api('GET', '/api/beds'),
     api('GET', '/api/tasks?completed=false&limit=5'),
     api('GET', '/api/calendar'),
     api('GET', '/api/notes?limit=5'),
+    api('GET', '/api/harvest/analytics'),
   ]);
 
   const pending = pendingTasks.data;
@@ -189,6 +190,40 @@ async function loadDashboard() {
         <div class="panel-item-meta">${fmtDate(n.entry_date)}</div>`;
       item.onclick = async () => { await navigate('journal'); openNote(n.id); };
       journalEl.appendChild(item);
+    });
+  }
+
+  // Harvest analytics
+  const harvestPlantsEl = get('dashboard-harvest-plants');
+  harvestPlantsEl.innerHTML = '';
+  if (!harvestAnalytics.by_plant.length) {
+    harvestPlantsEl.innerHTML = '<div class="panel-empty">No harvests recorded yet</div>';
+  } else {
+    harvestAnalytics.by_plant.forEach(row => {
+      const item = el('div', 'panel-item');
+      const total = Number.isInteger(row.total) ? row.total : parseFloat(row.total.toFixed(2));
+      item.innerHTML = `<div class="panel-item-title">${escHtml(row.plant_name)}</div>
+        <div class="panel-item-meta">${total} ${escHtml(row.unit)}</div>`;
+      item.onclick = () => {
+        navigate('harvest');
+        if (row.plant_id) get('harvest-plant-filter').value = row.plant_id;
+        loadHarvests(0);
+      };
+      harvestPlantsEl.appendChild(item);
+    });
+  }
+
+  const harvestUnitsEl = get('dashboard-harvest-units');
+  harvestUnitsEl.innerHTML = '';
+  if (!harvestAnalytics.by_unit.length) {
+    harvestUnitsEl.innerHTML = '<div class="panel-empty">No harvests recorded yet</div>';
+  } else {
+    harvestAnalytics.by_unit.forEach(row => {
+      const item = el('div', 'panel-item');
+      item.innerHTML = `<div class="panel-item-title">${escHtml(row.unit)}</div>
+        <div class="panel-item-meta">${row.total} total</div>`;
+      item.onclick = () => navigate('harvest');
+      harvestUnitsEl.appendChild(item);
     });
   }
 }
