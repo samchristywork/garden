@@ -998,7 +998,7 @@ function eventFormHtml(ev, defaultDate) {
       <label>Notes</label>
       <textarea class="input" name="notes">${escHtml(ev?.notes || '')}</textarea>
     </div>
-    ${recurrenceFormHtml(ev?.recurrence_rule || '', 'ev')}
+    ${recurrenceFormHtml(ev?.recurrence_rule || '', 'ev', true)}
     <div class="form-actions">
       ${ev ? `<button type="button" class="btn btn-danger btn-sm" id="btn-del-event">Delete</button>` : ''}
       <button type="button" class="btn btn-ghost" id="btn-cancel-event">Cancel</button>
@@ -1021,7 +1021,7 @@ function showEventForm(ev, defaultDate) {
       await loadCalendar();
     } catch (e) { routeFormError(form, e.message); }
   });
-  bindRecurrenceSelect('ev-recur-select', 'ev-recur-interval');
+  bindRecurrenceSelect('ev-recur-select', 'ev-recur-interval', 'ev-backfill-row');
   const cancelBtn = get('btn-cancel-event');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
   const delBtn = get('btn-del-event');
@@ -1040,10 +1040,15 @@ function fmtRecur(rule) {
   return `every ${rule}d`;
 }
 
-function recurrenceFormHtml(rule, idPrefix) {
+function recurrenceFormHtml(rule, idPrefix, showBackfill = false) {
   const named = ['daily', 'weekly', 'monthly'];
   const selectVal = named.includes(rule) ? rule : (rule ? '_custom' : '');
   const intervalVal = (rule && !named.includes(rule)) ? rule : '7';
+  const backfillRow = showBackfill ? `
+    <div class="form-row" id="${idPrefix}-backfill-row" style="display:${selectVal?'':'none'}">
+      <label>Back-fill from (optional)</label>
+      <input class="input" type="date" name="backfill_from">
+    </div>` : '';
   return `
     <div class="form-row">
       <label>Recurrence</label>
@@ -1058,15 +1063,17 @@ function recurrenceFormHtml(rule, idPrefix) {
     <div class="form-row" id="${idPrefix}-recur-interval" style="display:${selectVal==='_custom'?'':'none'}">
       <label>Interval (days)</label>
       <input class="input" type="number" name="recurrence_interval" min="1" max="365" value="${escHtml(String(intervalVal))}">
-    </div>`;
+    </div>${backfillRow}`;
 }
 
-function bindRecurrenceSelect(selectId, intervalRowId) {
+function bindRecurrenceSelect(selectId, intervalRowId, backfillRowId) {
   const sel = get(selectId);
   const row = get(intervalRowId);
+  const backfillRow = backfillRowId ? get(backfillRowId) : null;
   if (sel && row) {
     sel.addEventListener('change', () => {
       row.style.display = sel.value === '_custom' ? '' : 'none';
+      if (backfillRow) backfillRow.style.display = sel.value ? '' : 'none';
     });
   }
 }

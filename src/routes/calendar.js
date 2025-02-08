@@ -18,6 +18,33 @@ function nextDate(dateStr, rule) {
   return d.toISOString().slice(0, 10);
 }
 
+function prevDate(dateStr, rule) {
+  if (!dateStr || !rule) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if (rule === 'daily') d.setDate(d.getDate() - 1);
+  else if (rule === 'weekly') d.setDate(d.getDate() - 7);
+  else if (rule === 'monthly') d.setMonth(d.getMonth() - 1);
+  else {
+    const days = parseInt(rule, 10);
+    if (days > 0) d.setDate(d.getDate() - days);
+    else return null;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function generatePastRecurrences(db, baseDate, rule, title, event_time, type, plant_id, bed_id, notes, fromDate) {
+  const insert = db.prepare(
+    `INSERT INTO calendar_events (title, event_date, event_time, type, plant_id, bed_id, notes, recurrence_rule)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  let current = baseDate;
+  while (true) {
+    current = prevDate(current, rule);
+    if (!current || current < fromDate) break;
+    insert.run(title, current, event_time, type, plant_id, bed_id, notes, rule);
+  }
+}
+
 function generateRecurrences(db, baseDate, rule, title, event_time, type, plant_id, bed_id, notes) {
   const limit = new Date();
   limit.setFullYear(limit.getFullYear() + 1);
@@ -56,7 +83,7 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const { title, event_date, event_time, type, plant_id, bed_id, notes, recurrence_rule } = req.body;
+  const { title, event_date, event_time, type, plant_id, bed_id, notes, recurrence_rule, backfill_from } = req.body;
   if (!title || !event_date)
     return res.status(400).json({ error: "title and event_date are required" });
   const result = db
@@ -82,6 +109,12 @@ router.post("/", (req, res) => {
       db, event_date, recurrence_rule, title,
       n(event_time), n(type) ?? "other", n(plant_id), n(bed_id), n(notes)
     );
+    if (n(backfill_from)) {
+      generatePastRecurrences(
+        db, event_date, recurrence_rule, title,
+        n(event_time), n(type) ?? "other", n(plant_id), n(bed_id), n(notes), backfill_from
+      );
+    }
   }
 
   res
@@ -92,7 +125,7 @@ router.post("/", (req, res) => {
 });
 
 router.put("/:id", (req, res) => {
-  const { title, event_date, event_time, type, plant_id, bed_id, notes, recurrence_rule } = req.body;
+  const { title, event_date, event_time, type, plant_id, bed_id, notes, recurrence_rule, backfill_from } = req.body;
   if (!title || !event_date)
     return res.status(400).json({ error: "title and event_date are required" });
   const info = db
@@ -114,6 +147,12 @@ router.put("/:id", (req, res) => {
       req.params.id,
     );
   if (info.changes === 0) return res.status(404).json({ error: "Not found" });
+  if (n(recurrence_rule) && n(backfill_from)) {
+    generatePastRecurrences(
+      db, event_date, recurrence_rule, title,
+      n(event_time), n(type) ?? "other", n(plant_id), n(bed_id), n(notes), backfill_from
+    );
+  }
   res.json(db.prepare(`${WITH_JOINS} WHERE e.id = ?`).get(req.params.id));
 });
 
