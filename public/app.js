@@ -54,6 +54,44 @@ function showToast(msg) {
   }, 4000);
 }
 
+function showFieldError(form, fieldName, message) {
+  const field = form.querySelector(`[name="${fieldName}"]`);
+  if (!field) return;
+  field.classList.add('input--error');
+  const row = field.closest('.form-row');
+  if (!row) return;
+  const err = document.createElement('span');
+  err.className = 'field-error';
+  err.textContent = message;
+  row.appendChild(err);
+}
+
+function clearFieldErrors(form) {
+  form.querySelectorAll('.field-error').forEach(e => e.remove());
+  form.querySelectorAll('.input--error').forEach(e => e.classList.remove('input--error'));
+}
+
+function routeFormError(form, msg) {
+  const invalidField = msg.match(/^Invalid value for (\w+):/);
+  if (invalidField) return showFieldError(form, invalidField[1], msg);
+  if (/name is required/i.test(msg))  return showFieldError(form, 'name', msg);
+  if (/title is required/i.test(msg)) return showFieldError(form, 'title', msg);
+  if (/title and event_date are required/i.test(msg)) {
+    showFieldError(form, 'title', 'Title is required');
+    showFieldError(form, 'event_date', 'Date is required');
+    return;
+  }
+  if (/image/i.test(msg))    return showFieldError(form, 'image_url', msg);
+  if (/color/i.test(msg))    return showFieldError(form, 'color', msg);
+  if (/quantity/i.test(msg)) return showFieldError(form, 'quantity', msg);
+  if (/rows and cols/i.test(msg)) {
+    showFieldError(form, 'rows', msg);
+    showFieldError(form, 'cols', msg);
+    return;
+  }
+  showToast(msg);
+}
+
 function fmtDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
@@ -76,7 +114,7 @@ const Modal = {
 
     const form = qs('form', get('modal-body'));
     if (form && onSubmit) {
-      form.onsubmit = (e) => { e.preventDefault(); onSubmit(form); };
+      form.onsubmit = (e) => { e.preventDefault(); clearFieldErrors(form); onSubmit(form); };
     }
   },
   close() {
@@ -383,7 +421,7 @@ function showPlantForm(plant) {
       }
       Modal.close();
       await Promise.all([loadPlants(), refreshBedsCache()]);
-    } catch (e) { showToast(e.message); }
+    } catch (e) { routeFormError(form, e.message); }
   });
 
   // Sync color picker <-> text input
@@ -426,7 +464,11 @@ function showPlantForm(plant) {
   photoInput.addEventListener('change', () => {
     const file = photoInput.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { showToast('Photo must be under 10 MB'); photoInput.value = ''; return; }
+    if (file.size > 10 * 1024 * 1024) {
+      showFieldError(qs('form', get('modal-body')), 'image_url', 'Photo must be under 10 MB');
+      photoInput.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => updatePhotoPreview(e.target.result);
     reader.readAsDataURL(file);
@@ -655,7 +697,7 @@ get('btn-add-bed').addEventListener('click', () => {
       await api('POST', '/api/beds', data);
       Modal.close();
       await Promise.all([loadBeds(), refreshPlantsCache()]);
-    } catch (e) { showToast(e.message); }
+    } catch (e) { routeFormError(form, e.message); }
   });
   const cancelBtn = get('btn-cancel-bed');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
@@ -674,7 +716,7 @@ get('btn-edit-bed').addEventListener('click', async () => {
       await api('PUT', `/api/beds/${currentBedId}`, data);
       Modal.close();
       await Promise.all([openBedDetail(currentBedId), refreshPlantsCache()]);
-    } catch (e) { showToast(e.message); }
+    } catch (e) { routeFormError(form, e.message); }
   });
   const cancelBtn = get('btn-cancel-bed');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
@@ -711,7 +753,7 @@ get('btn-save-as-template').addEventListener('click', () => {
       await api('POST', '/api/beds/templates', { name, bed_id: currentBedId });
       Modal.close();
       showToast('Template saved.');
-    } catch (e) { showToast(e.message); }
+    } catch (e) { routeFormError(form, e.message); }
   });
   get('btn-cancel-template').onclick = Modal.close;
 });
@@ -775,7 +817,7 @@ get('btn-from-template').addEventListener('click', async () => {
           Modal.close();
           await loadBeds();
           await openBedDetail(bed.id);
-        } catch (e) { showToast(e.message); }
+        } catch (e) { routeFormError(form, e.message); }
       });
       get('btn-cancel-from-template').onclick = Modal.close;
     });
@@ -977,7 +1019,7 @@ function showEventForm(ev, defaultDate) {
       }
       Modal.close();
       await loadCalendar();
-    } catch (e) { showToast(e.message); }
+    } catch (e) { routeFormError(form, e.message); }
   });
   bindRecurrenceSelect('ev-recur-select', 'ev-recur-interval');
   const cancelBtn = get('btn-cancel-event');
@@ -1191,7 +1233,7 @@ function showTaskForm(task) {
       }
       Modal.close();
       await loadTasks();
-    } catch (e) { showToast(e.message); }
+    } catch (e) { routeFormError(form, e.message); }
   });
   bindRecurrenceSelect('task-recur-select', 'task-recur-interval');
   const cancelBtn = get('btn-cancel-task');
@@ -1358,7 +1400,7 @@ function showNoteForm(note) {
         await loadNotes();
         await openNote(created.id);
       }
-    } catch (e) { showToast(e.message); }
+    } catch (e) { routeFormError(form, e.message); }
   });
   const cancelBtn = get('btn-cancel-note');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
@@ -1605,7 +1647,7 @@ function showHarvestForm(harvest, prefillPlantId, prefillBedId) {
       }
       Modal.close();
       if (currentSection === 'harvest') await loadHarvests();
-    } catch (e) { showToast(e.message); }
+    } catch (e) { routeFormError(form, e.message); }
   });
   const cancelBtn = get('btn-cancel-harvest');
   if (cancelBtn) cancelBtn.onclick = Modal.close;
