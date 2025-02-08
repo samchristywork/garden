@@ -281,10 +281,12 @@ async function refreshBedsCache() { allBeds = await api('GET', '/api/beds'); }
 function renderPlants() {
   const search = get('plant-search').value.toLowerCase();
   const typeFilter = get('plant-type-filter').value;
+  const varietyFilter = get('plant-variety-filter').value.toLowerCase();
 
   let list = allPlants;
   if (search) list = list.filter(p => p.name.toLowerCase().includes(search) || (p.variety || '').toLowerCase().includes(search));
   if (typeFilter) list = list.filter(p => p.type === typeFilter);
+  if (varietyFilter) list = list.filter(p => (p.variety || '').toLowerCase().includes(varietyFilter));
 
   const total = list.length;
   const paged = list.slice(plantsPage * PAGE_SIZE, (plantsPage + 1) * PAGE_SIZE);
@@ -324,6 +326,7 @@ function renderPlants() {
 
 get('plant-search').addEventListener('input', () => { plantsPage = 0; renderPlants(); });
 get('plant-type-filter').addEventListener('change', () => { plantsPage = 0; renderPlants(); });
+get('plant-variety-filter').addEventListener('input', () => { plantsPage = 0; renderPlants(); });
 get('btn-add-plant').addEventListener('click', () => showPlantForm(null));
 get('btn-export-plants').addEventListener('click', () => showExportModal('Export Plants', '/api/plants', 'plants'));
 
