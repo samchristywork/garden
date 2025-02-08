@@ -44,9 +44,9 @@ function renderPagination(containerId, page, total, onPageChange) {
   container.append(prev, info, next);
 }
 
-function showToast(msg) {
+function showToast(msg, type = 'error') {
   const container = get('toast-container');
-  const toast = el('div', 'toast', msg);
+  const toast = el('div', `toast toast--${type}`, msg);
   container.appendChild(toast);
   setTimeout(() => {
     toast.classList.add('fade-out');
@@ -755,7 +755,7 @@ get('btn-save-as-template').addEventListener('click', () => {
     try {
       await api('POST', '/api/beds/templates', { name, bed_id: currentBedId });
       Modal.close();
-      showToast('Template saved.');
+      showToast('Template saved.', 'success');
     } catch (e) { routeFormError(form, e.message); }
   });
   get('btn-cancel-template').onclick = Modal.close;
@@ -1702,7 +1702,7 @@ get('restore-file-input').addEventListener('change', async (e) => {
   }
   try {
     await api('POST', '/api/backup/restore', backup);
-    showToast('Backup restored successfully. Reloading...');
+    showToast('Backup restored successfully. Reloading...', 'success');
     setTimeout(() => location.reload(), 1500);
   } catch (err) {
     showToast('Restore failed: ' + err.message);

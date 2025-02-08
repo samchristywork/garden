@@ -633,18 +633,36 @@ textarea.input { resize: vertical; min-height: 80px; }
   pointer-events: none;
 }
 .toast {
-  background: var(--danger-bg);
-  color: var(--danger);
-  border: 1px solid #f0c0ba;
   border-radius: var(--radius);
-  padding: 10px 16px;
+  padding: 10px 16px 10px 40px;
   font-size: 13px;
   box-shadow: var(--shadow);
   pointer-events: auto;
   opacity: 1;
   transition: opacity .3s;
   max-width: 360px;
+  position: relative;
 }
+.toast::before {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  line-height: 1;
+}
+.toast--error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid #f0c0ba;
+}
+.toast--error::before { content: '✕'; }
+.toast--success {
+  background: var(--green-100);
+  color: var(--green-800);
+  border: 1px solid var(--green-200);
+}
+.toast--success::before { content: '✓'; }
 .toast.fade-out { opacity: 0; }
 .cell-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
 .cell-thumb { width: 24px; height: 24px; border-radius: 3px; object-fit: cover; flex-shrink: 0; }
