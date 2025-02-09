@@ -46,36 +46,36 @@ router.post('/restore', (req, res) => {
 
   try {
     db.exec('PRAGMA foreign_keys = OFF');
-    const restore = db.transaction(() => {
-      // Delete in reverse dependency order
-      for (const table of [...TABLES].reverse()) {
-        db.prepare(`DELETE FROM ${table}`).run();
+    db.exec('BEGIN');
+    // Delete in reverse dependency order
+    for (const table of [...TABLES].reverse()) {
+      db.prepare(`DELETE FROM ${table}`).run();
+    }
+    // Reset autoincrement counters (sqlite_sequence may not exist on a fresh DB)
+    const hasSeq = db.prepare(
+      `SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'`
+    ).get();
+    if (hasSeq) {
+      db.prepare(`DELETE FROM sqlite_sequence WHERE name IN (${TABLES.map(() => '?').join(',')})`).run(...TABLES);
+    }
+    // Insert in dependency order
+    for (const table of TABLES) {
+      const rows = backup.tables[table];
+      if (!rows || !rows.length) continue;
+      const cols = Object.keys(rows[0]);
+      const placeholders = cols.map(() => '?').join(', ');
+      const stmt = db.prepare(
+        `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`
+      );
+      for (const row of rows) {
+        stmt.run(cols.map(c => row[c]));
       }
-      // Reset autoincrement counters (sqlite_sequence may not exist on a fresh DB)
-      const hasSeq = db.prepare(
-        `SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'`
-      ).get();
-      if (hasSeq) {
-        db.prepare(`DELETE FROM sqlite_sequence WHERE name IN (${TABLES.map(() => '?').join(',')})`).run(...TABLES);
-      }
-      // Insert in dependency order
-      for (const table of TABLES) {
-        const rows = backup.tables[table];
-        if (!rows || !rows.length) continue;
-        const cols = Object.keys(rows[0]);
-        const placeholders = cols.map(() => '?').join(', ');
-        const stmt = db.prepare(
-          `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`
-        );
-        for (const row of rows) {
-          stmt.run(cols.map(c => row[c]));
-        }
-      }
-    });
-    restore();
+    }
+    db.exec('COMMIT');
     db.exec('PRAGMA foreign_keys = ON');
     res.json({ ok: true });
   } catch (err) {
+    try { db.exec('ROLLBACK'); } catch (_) {}
     db.exec('PRAGMA foreign_keys = ON');
     res.status(500).json({ error: err.message });
   }

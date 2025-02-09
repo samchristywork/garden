@@ -95,13 +95,18 @@ router.post("/:id/apply-template/:templateId", (req, res) => {
     "SELECT row_num, col_num, plant_id FROM bed_template_cells WHERE template_id = ? AND plant_id IS NOT NULL"
   ).all(req.params.templateId);
 
-  db.transaction(() => {
+  db.exec('BEGIN');
+  try {
     db.prepare("DELETE FROM bed_cells WHERE bed_id = ?").run(req.params.id);
     const insertCell = db.prepare(
       "INSERT INTO bed_cells (bed_id, row_num, col_num, plant_id) VALUES (?, ?, ?, ?)"
     );
     for (const c of cells) insertCell.run(req.params.id, c.row_num, c.col_num, c.plant_id);
-  })();
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
 
   res.status(204).end();
 });
