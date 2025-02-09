@@ -761,6 +761,59 @@ get('btn-save-as-template').addEventListener('click', () => {
   get('btn-cancel-template').onclick = Modal.close;
 });
 
+get('btn-apply-template').addEventListener('click', async () => {
+  const templates = await api('GET', '/api/beds/templates');
+  if (!templates.length) {
+    Modal.show('Apply Template', '<p style="color:var(--text-muted);padding:16px 0">No templates saved yet. Open a bed and use "Save as Template" to create one.</p>');
+    return;
+  }
+
+  function templatePreviewHtmlApply(t) {
+    const previewRows = Math.min(t.rows, 4);
+    const previewCols = Math.min(t.cols, 6);
+    const cellMap = {};
+    (t.cells || []).forEach(c => { cellMap[`${c.row_num},${c.col_num}`] = c.plant_color; });
+    let html = `<div class="bed-card-preview" style="--cols:${previewCols}">`;
+    for (let r = 0; r < previewRows; r++) {
+      html += '<div class="bed-preview-row">';
+      for (let c = 0; c < previewCols; c++) {
+        const color = cellMap[`${r},${c}`];
+        const style = color ? ` style="background:${escHtml(color)}"` : '';
+        const cls = color ? 'bed-preview-cell occupied' : 'bed-preview-cell';
+        html += `<div class="${cls}"${style}></div>`;
+      }
+      html += '</div>';
+    }
+    return html + '</div>';
+  }
+
+  const listHtml = templates.map(t => `
+    <div class="template-option" data-id="${t.id}">
+      <div>
+        <div class="bed-card-name">${escHtml(t.name)}</div>
+        <div class="bed-card-dims">${t.rows} rows &times; ${t.cols} columns</div>
+      </div>
+      ${templatePreviewHtmlApply(t)}
+    </div>`).join('');
+
+  Modal.show('Apply Template to Bed', `<div class="template-list">${listHtml}</div>`);
+
+  qsa('.template-option', get('modal-body')).forEach(opt => {
+    opt.addEventListener('click', async () => {
+      const templateId = opt.dataset.id;
+      const tName = templates.find(t => t.id === +templateId)?.name || '';
+      const bed = allBeds.find(b => b.id === currentBedId);
+      if (!confirm(`Apply template "${tName}" to "${bed?.name}"? Current cell assignments will be overwritten.`)) return;
+      try {
+        await api('POST', `/api/beds/${currentBedId}/apply-template/${templateId}`);
+        Modal.close();
+        await openBedDetail(currentBedId);
+        showToast('Template applied.', 'success');
+      } catch (e) { showToast(e.message); }
+    });
+  });
+});
+
 get('btn-from-template').addEventListener('click', async () => {
   const templates = await api('GET', '/api/beds/templates');
   if (!templates.length) {

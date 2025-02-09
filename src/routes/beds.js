@@ -85,6 +85,27 @@ router.post("/from-template/:templateId", (req, res) => {
   res.status(201).json(db.prepare("SELECT * FROM garden_beds WHERE id = ?").get(bedId));
 });
 
+router.post("/:id/apply-template/:templateId", (req, res) => {
+  const bed = db.prepare("SELECT * FROM garden_beds WHERE id = ?").get(req.params.id);
+  if (!bed) return res.status(404).json({ error: "Bed not found" });
+  const template = db.prepare("SELECT * FROM bed_templates WHERE id = ?").get(req.params.templateId);
+  if (!template) return res.status(404).json({ error: "Template not found" });
+
+  const cells = db.prepare(
+    "SELECT row_num, col_num, plant_id FROM bed_template_cells WHERE template_id = ? AND plant_id IS NOT NULL"
+  ).all(req.params.templateId);
+
+  db.transaction(() => {
+    db.prepare("DELETE FROM bed_cells WHERE bed_id = ?").run(req.params.id);
+    const insertCell = db.prepare(
+      "INSERT INTO bed_cells (bed_id, row_num, col_num, plant_id) VALUES (?, ?, ?, ?)"
+    );
+    for (const c of cells) insertCell.run(req.params.id, c.row_num, c.col_num, c.plant_id);
+  })();
+
+  res.status(204).end();
+});
+
 router.get("/:id", (req, res) => {
   const bed = db
     .prepare("SELECT * FROM garden_beds WHERE id = ?")
