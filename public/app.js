@@ -428,6 +428,11 @@ function plantFormHtml(p) {
 function showPlantForm(plant) {
   Modal.show(plant ? 'Edit Plant' : 'Add Plant', plantFormHtml(plant), async (form) => {
     const data = formData(form);
+    const dupName = data.name && data.name.trim().toLowerCase();
+    const duplicate = allPlants.find(p =>
+      p.name.trim().toLowerCase() === dupName && (!plant || p.id !== plant.id)
+    );
+    if (duplicate && !confirm(`A plant named "${duplicate.name}" already exists. Add anyway?`)) return;
     try {
       if (plant) {
         await api('PUT', `/api/plants/${plant.id}`, data);
