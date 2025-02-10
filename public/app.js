@@ -189,7 +189,8 @@ async function loadDashboard() {
   tasksEl.innerHTML = '';
   const upTasks = pending.slice(0, 5);
   if (!upTasks.length) {
-    tasksEl.innerHTML = '<div class="panel-empty">No pending tasks</div>';
+    tasksEl.innerHTML = '<div class="panel-empty">No pending tasks — <span class="panel-empty-link">add one</span></div>';
+    qs('.panel-empty-link', tasksEl).onclick = () => { navigate('tasks'); showTaskForm(null); };
   } else {
     upTasks.forEach(t => {
       const item = el('div', 'panel-item');
@@ -204,7 +205,8 @@ async function loadDashboard() {
   const eventsEl = get('dashboard-events');
   eventsEl.innerHTML = '';
   if (!upcoming.length) {
-    eventsEl.innerHTML = '<div class="panel-empty">No upcoming events</div>';
+    eventsEl.innerHTML = '<div class="panel-empty">No upcoming events — <span class="panel-empty-link">add one</span></div>';
+    qs('.panel-empty-link', eventsEl).onclick = () => { navigate('calendar'); showEventForm(null, today()); };
   } else {
     upcoming.forEach(ev => {
       const item = el('div', 'panel-item');
@@ -220,7 +222,8 @@ async function loadDashboard() {
   journalEl.innerHTML = '';
   const recentNotes = notes.data;
   if (!recentNotes.length) {
-    journalEl.innerHTML = '<div class="panel-empty">No journal entries</div>';
+    journalEl.innerHTML = '<div class="panel-empty">No journal entries — <span class="panel-empty-link">record one</span></div>';
+    qs('.panel-empty-link', journalEl).onclick = async () => { await navigate('journal'); showNoteForm(null); };
   } else {
     recentNotes.forEach(n => {
       const item = el('div', 'panel-item');
@@ -235,7 +238,8 @@ async function loadDashboard() {
   const harvestPlantsEl = get('dashboard-harvest-plants');
   harvestPlantsEl.innerHTML = '';
   if (!harvestAnalytics.by_plant.length) {
-    harvestPlantsEl.innerHTML = '<div class="panel-empty">No harvests recorded yet</div>';
+    harvestPlantsEl.innerHTML = '<div class="panel-empty">No harvests recorded yet — <span class="panel-empty-link">log one</span></div>';
+    qs('.panel-empty-link', harvestPlantsEl).onclick = () => { navigate('harvest'); showHarvestForm(null); };
   } else {
     harvestAnalytics.by_plant.forEach(row => {
       const item = el('div', 'panel-item');
@@ -254,7 +258,8 @@ async function loadDashboard() {
   const harvestUnitsEl = get('dashboard-harvest-units');
   harvestUnitsEl.innerHTML = '';
   if (!harvestAnalytics.by_unit.length) {
-    harvestUnitsEl.innerHTML = '<div class="panel-empty">No harvests recorded yet</div>';
+    harvestUnitsEl.innerHTML = '<div class="panel-empty">No harvests recorded yet — <span class="panel-empty-link">log one</span></div>';
+    qs('.panel-empty-link', harvestUnitsEl).onclick = () => { navigate('harvest'); showHarvestForm(null); };
   } else {
     harvestAnalytics.by_unit.forEach(row => {
       const item = el('div', 'panel-item');
@@ -295,7 +300,14 @@ function renderPlants() {
   grid.innerHTML = '';
 
   if (!paged.length) {
-    grid.innerHTML = '<div class="plant-card-empty">No plants found. Add one to get started.</div>';
+    const emptyDiv = el('div', 'plant-card-empty');
+    if (!allPlants.length) {
+      emptyDiv.innerHTML = '<p>No plants yet — add one to start planning your garden.</p><button class="empty-state-btn">+ Add Plant</button>';
+      qs('button', emptyDiv).onclick = () => showPlantForm(null);
+    } else {
+      emptyDiv.textContent = 'No plants match your filters.';
+    }
+    grid.appendChild(emptyDiv);
     renderPagination('plants-pagination', plantsPage, total, p => { plantsPage = p; renderPlants(); });
     return;
   }
@@ -523,7 +535,10 @@ function renderBeds() {
   const grid = get('beds-grid');
   grid.innerHTML = '';
   if (!allBeds.length) {
-    grid.innerHTML = '<div class="bed-card-empty">No beds yet. Add one to start planning your layout.</div>';
+    const emptyDiv = el('div', 'bed-card-empty');
+    emptyDiv.innerHTML = '<p>No garden beds yet — add one to start laying out your space.</p><button class="empty-state-btn">+ Add Bed</button>';
+    qs('button', emptyDiv).onclick = () => get('btn-add-bed').click();
+    grid.appendChild(emptyDiv);
     return;
   }
   allBeds.forEach(b => {
@@ -1171,7 +1186,14 @@ function renderTasks(list, total) {
   container.innerHTML = '';
 
   if (!list.length) {
-    container.innerHTML = `<div class="tasks-empty">No ${taskFilter} tasks.</div>`;
+    const emptyDiv = el('div', 'tasks-empty');
+    if (total === 0 && taskFilter === 'pending') {
+      emptyDiv.innerHTML = '<p>No tasks yet — add one to stay on top of your garden.</p><button class="empty-state-btn">+ Add Task</button>';
+      qs('button', emptyDiv).onclick = () => showTaskForm(null);
+    } else {
+      emptyDiv.textContent = `No ${taskFilter} tasks.`;
+    }
+    container.appendChild(emptyDiv);
     renderPagination('tasks-pagination', tasksPage, total, p => loadTasks(p));
     return;
   }
@@ -1353,7 +1375,14 @@ function renderNotes(notes, total) {
   list.innerHTML = '';
 
   if (!notes.length) {
-    list.innerHTML = `<div class="notes-empty">${total === 0 ? 'No journal entries yet. Record your first observation!' : 'No entries match your search.'}</div>`;
+    const emptyDiv = el('div', 'notes-empty');
+    if (total === 0) {
+      emptyDiv.innerHTML = '<p>No journal entries yet — record your first observation.</p><button class="empty-state-btn">+ New Entry</button>';
+      qs('button', emptyDiv).onclick = () => showNoteForm(null);
+    } else {
+      emptyDiv.textContent = 'No entries match your search.';
+    }
+    list.appendChild(emptyDiv);
     renderPagination('notes-pagination', notesPage, total, p => loadNotes(p));
     return;
   }
@@ -1613,7 +1642,14 @@ function renderHarvests(harvests, total) {
   list.innerHTML = '';
 
   if (!harvests.length) {
-    list.innerHTML = `<div class="notes-empty">${total === 0 ? 'No harvests logged yet. Record your first harvest!' : 'No harvests match your filters.'}</div>`;
+    const emptyDiv = el('div', 'notes-empty');
+    if (total === 0) {
+      emptyDiv.innerHTML = '<p>No harvests logged yet — record your first harvest.</p><button class="empty-state-btn">+ Log Harvest</button>';
+      qs('button', emptyDiv).onclick = () => showHarvestForm(null);
+    } else {
+      emptyDiv.textContent = 'No harvests match your filters.';
+    }
+    list.appendChild(emptyDiv);
     renderPagination('harvest-pagination', harvestPage, total, p => loadHarvests(p));
     return;
   }

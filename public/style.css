@@ -243,6 +243,10 @@ textarea.input { resize: vertical; min-height: 80px; }
 .panel-item-title { font-weight: 500; color: var(--text); }
 .panel-item-meta  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .panel-empty { color: var(--text-muted); font-size: 13px; font-style: italic; padding: 8px 0; }
+.panel-empty-link { color: var(--green-700); font-style: normal; cursor: pointer; text-decoration: underline; }
+.panel-empty-link:hover { color: var(--green-800); }
+.empty-state-btn { margin-top: 12px; padding: 7px 16px; background: var(--green-600); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-size: 14px; font-family: inherit; }
+.empty-state-btn:hover { background: var(--green-700); }
 
 .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
 .search-bar .input { max-width: 300px; }
