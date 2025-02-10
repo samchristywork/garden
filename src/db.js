@@ -128,6 +128,20 @@ try {
   `);
 } catch (e) { /* tables already exist */ }
 
+try {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_bed_cells_plant_id ON bed_cells(plant_id);
+    CREATE INDEX IF NOT EXISTS idx_calendar_events_plant_id ON calendar_events(plant_id);
+    CREATE INDEX IF NOT EXISTS idx_calendar_events_bed_id ON calendar_events(bed_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_plant_id ON tasks(plant_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_bed_id ON tasks(bed_id);
+    CREATE INDEX IF NOT EXISTS idx_journal_entries_plant_id ON journal_entries(plant_id);
+    CREATE INDEX IF NOT EXISTS idx_journal_entries_bed_id ON journal_entries(bed_id);
+    CREATE INDEX IF NOT EXISTS idx_harvest_logs_plant_id ON harvest_logs(plant_id);
+    CREATE INDEX IF NOT EXISTS idx_harvest_logs_bed_id ON harvest_logs(bed_id);
+  `);
+} catch (e) { /* indexes already exist */ }
+
 // Seed catalog only on fresh installs
 const plantCount = db.prepare('SELECT COUNT(*) as c FROM plants').get();
 if (plantCount.c === 0) {
