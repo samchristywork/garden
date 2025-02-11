@@ -2,6 +2,11 @@
 
 ## Overview
 
+Garden Planner is a web application for managing a personal garden. It allows
+you to track plants, organize garden beds, schedule tasks, log harvests, and
+take notes, all backed by a local SQLite database. The frontend is a
+single-page application served by a Node.js/Express backend.
+
 ## Screenshots
 
 ## Features
