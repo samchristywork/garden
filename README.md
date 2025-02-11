@@ -15,6 +15,16 @@ single-page application served by a Node.js/Express backend.
 
 ## Features
 
+- Track plants with detailed information and a built-in plant library
+- Organize plants into named garden beds
+- Calendar view for scheduling plantings and garden events
+- Task management for garden chores and reminders
+- Harvest log for recording yields over time
+- Notes section for general garden journaling
+- Global search across plants, beds, tasks, and notes
+- Backup and restore support
+- Runs entirely locally with no external dependencies
+
 ## Usage
 
 ## Dependencies
