@@ -9,6 +9,10 @@ single-page application served by a Node.js/Express backend.
 
 ## Screenshots
 
+<p align="center">
+  <img src="./res/screenshot.png" />
+</p>
+
 ## Features
 
 ## Usage
