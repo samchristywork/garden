@@ -43,6 +43,11 @@ npm run dev
 
 ## Dependencies
 
+```
+node
+npm
+```
+
 ## License
 
 This work is licensed under the GNU General Public License version 3 (GPLv3).
