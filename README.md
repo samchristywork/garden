@@ -27,6 +27,20 @@ single-page application served by a Node.js/Express backend.
 
 ## Usage
 
+Install dependencies and start the server:
+
+```
+npm install
+npm start
+```
+
+The app will be available at `http://localhost:3000`. To run with auto-reload
+during development:
+
+```
+npm run dev
+```
+
 ## Dependencies
 
 ## License
